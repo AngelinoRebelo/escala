@@ -36,6 +36,11 @@
             cursor: not-allowed;
             opacity: 0.7;
         }
+        .agent-name-input.is-scale-placeholder {
+            opacity: 0.35;
+            background-color: #f9fafb; /* gray-50 */
+            border-style: dashed;
+        }
         .agent-name-input:focus {
             outline: none;
             box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
@@ -211,7 +216,7 @@
             const LOGIN_PASS = '3458';
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'LISBOA', 'MALCHER', 'THEODORO', 'PENNA', 'EDUARDO', 'ESCALA'];
+            const ALLOWED_NAMES = ['EDUARDO', 'GABRIEL', 'GARCEZ', 'LEANDRO', 'LISBOA', 'MALCHER', 'PENNA', 'THEODORO', 'WASHINGTON', 'ESCALA'];
 
             const enableEditing = () => {
                 editableTitlePart.contentEditable = "true";
@@ -308,6 +313,14 @@
                     });
                 }
             };
+
+            const applyPlaceholderStyle = (selectElement) => {
+                if (selectElement.value === 'ESCALA') {
+                    selectElement.classList.add('is-scale-placeholder');
+                } else {
+                    selectElement.classList.remove('is-scale-placeholder');
+                }
+            };
             
             const adjustSelectWidth = (selectElement) => {
                 if (!selectElement || !selectElement.options) return;
@@ -386,6 +399,7 @@
                         const index = parseInt(select.dataset.index);
                         select.value = scheduleData[date]?.[index] || '';
                         adjustSelectWidth(select);
+                        applyPlaceholderStyle(select);
                     });
                     updateSummary();
 
@@ -507,9 +521,10 @@
                                 select.dataset.date = dateString;
                                 select.dataset.index = i;
                                 select.innerHTML = `<option value=""></option>${ALLOWED_NAMES.map(n => `<option value="${n}">${n}</option>`).join('')}`;
-                                select.addEventListener('change', () => {
+                                select.addEventListener('change', (e) => {
                                     updateSummary();
-                                    adjustSelectWidth(select);
+                                    adjustSelectWidth(e.target);
+                                    applyPlaceholderStyle(e.target);
                                 });
                                 container.appendChild(select);
                             }
@@ -599,10 +614,10 @@
                 onAuthStateChanged(auth, user => {
                     if (user) {
                         console.log("Authenticated successfully.");
-                        // Após autenticar, recarrega os dados da escala atual
                         const year = parseInt(document.getElementById('year-select').value);
                         const month = parseInt(document.getElementById('month-select').value);
-                        document.querySelector('#loadScheduleData')?.(year, month);
+                        // A função é exposta globalmente para ser chamada aqui
+                        window.loadScheduleDataForCurrentView(year, month);
                     } else {
                         signInAnonymously(auth).catch(err => {
                              console.error("Anonymous sign-in failed:", err);
@@ -619,4 +634,5 @@
     </script>
 </body>
 </html>
+
 
