@@ -130,12 +130,9 @@
                 </h1>
             </div>
             <div id="controls-header" class="flex items-center gap-4">
-                <div class="relative">
-                    <div id="custom-month-picker" class="flex items-center justify-between p-2 border border-slate-300 rounded-md shadow-sm bg-white cursor-pointer w-48">
-                        <span id="month-picker-label" class="text-sm text-slate-700 capitalize"></span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    </div>
-                    <input type="month" id="month-picker" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer">
+                 <div class="flex items-center gap-2">
+                    <select id="month-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
+                    <select id="year-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                 </div>
                 <div id="print-button-container" class="relative w-8 h-8 flex items-center justify-center">
                     <button id="print-button" class="text-slate-600 hover:text-indigo-600 opacity-0 hover:opacity-100 transition-opacity" title="Imprimir Escala">
@@ -189,15 +186,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const monthPicker = document.getElementById('month-picker');
-            const monthPickerLabel = document.getElementById('month-picker-label');
+            const monthSelect = document.getElementById('month-select');
+            const yearSelect = document.getElementById('year-select');
             const calendarBody = document.getElementById('calendar-body');
             const summaryBody = document.getElementById('summary-body');
             const dateTitlePart = document.getElementById('date-title-part');
             const printButton = document.getElementById('print-button');
 
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'LISBOA', 'MALCHER', 'EDUARDO', 'THEODORO', 'PENNA', 'ESCALA'];
+            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'ESCALA'];
 
             printButton.addEventListener('click', () => {
                 window.print();
@@ -352,49 +349,61 @@
                 const firstMonthName = PT_BR_MONTHS[month];
                 const secondMonth = (month + 1) % 12;
                 const secondMonthName = PT_BR_MONTHS[secondMonth];
-                const yearOfSecondMonth = month === 11 ? year + 1 : year;
+                let yearOfSecondMonth = year;
+                if (firstMonthName === 'DEZEMBRO') {
+                    yearOfSecondMonth = year + 1;
+                }
                 dateTitlePart.textContent = ` - ${firstMonthName}/${secondMonthName} - ${yearOfSecondMonth}`;
             };
-
-            const updateMonthPickerLabel = (year, month) => {
-                const date = new Date(year, month);
-                const label = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-                monthPickerLabel.textContent = label;
+            
+            const handleDateChange = () => {
+                const year = parseInt(yearSelect.value);
+                const month = parseInt(monthSelect.value);
+                generateCalendar(year, month);
+                updateTitle(year, month);
+                updateSummary();
             };
 
             const initialize = () => {
                 const today = new Date();
                 const currentYear = today.getFullYear();
                 const currentMonth = today.getMonth();
-                const currentDay = today.getDate();
 
+                // Populate month select
+                PT_BR_MONTHS.forEach((monthName, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase();
+                    monthSelect.appendChild(option);
+                });
+
+                // Populate year select
+                for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    yearSelect.appendChild(option);
+                }
+
+                // Set initial date based on current day
                 let initialMonth = currentMonth;
-                if (currentDay <= 15) {
+                let initialYear = currentYear;
+                if (today.getDate() <= 15) {
                    initialMonth = currentMonth - 1;
+                   if (initialMonth < 0) {
+                       initialMonth = 11;
+                       initialYear = currentYear - 1;
+                   }
                 }
                 
-                const yearString = initialMonth < 0 ? currentYear - 1 : currentYear;
-                const monthString = initialMonth < 0 ? 11 : initialMonth;
-
-                monthPicker.value = `${yearString}-${String(monthString + 1).padStart(2, '0')}`;
+                monthSelect.value = initialMonth;
+                yearSelect.value = initialYear;
                 
-                const year = parseInt(monthPicker.value.split('-')[0]);
-                const month = parseInt(monthPicker.value.split('-')[1]) - 1;
-                
-                updateMonthPickerLabel(year, month);
-                generateCalendar(year, month);
-                updateTitle(year, month);
-                updateSummary();
+                handleDateChange();
             };
 
-            monthPicker.addEventListener('change', () => {
-                const year = parseInt(monthPicker.value.split('-')[0]);
-                const month = parseInt(monthPicker.value.split('-')[1]) - 1;
-                updateMonthPickerLabel(year, month);
-                generateCalendar(year, month);
-                updateTitle(year, month);
-                updateSummary();
-            });
+            monthSelect.addEventListener('change', handleDateChange);
+            yearSelect.addEventListener('change', handleDateChange);
 
             initialize();
         });
