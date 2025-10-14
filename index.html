@@ -136,7 +136,7 @@
                 </div>
                 <div id="print-button-container" class="relative w-8 h-8 flex items-center justify-center">
                     <button id="print-button" class="text-slate-600 hover:text-indigo-600 opacity-0 hover:opacity-100 transition-opacity" title="Imprimir Escala">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-printer"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-printer"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                     </button>
                 </div>
             </div>
@@ -184,21 +184,55 @@
         </div>
     </main>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let db, auth;
+        let unsubscribeFromSchedule; // To manage realtime listener
+
+        const main = async () => {
+            // --- CONFIGURAÇÃO DO FIREBASE ---
+            const firebaseConfig = {
+                apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
+                authDomain: "escala-26e73.firebaseapp.com",
+                projectId: "escala-26e73",
+                storageBucket: "escala-26e73.appspot.com",
+                messagingSenderId: "1084570993293",
+                appId: "1:1084570993293:web:cab3627f9527b55da198c4"
+            };
+            // --- FIM DA CONFIGURAÇÃO ---
+            
+            const appId = 'escala-de-plantoes-v1';
+            
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "COLE_SUA_API_KEY_AQUI") {
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Firebase initialization failed:", error);
+                    alert("Erro na inicialização do Firebase. Verifique se a sua configuração (firebaseConfig) está correta no código.");
+                }
+            } else {
+                console.warn("Firebase não configurado. A aplicação funcionará em modo local, sem salvar na nuvem.");
+                db = null;
+            }
+
             const monthSelect = document.getElementById('month-select');
             const yearSelect = document.getElementById('year-select');
             const calendarBody = document.getElementById('calendar-body');
             const summaryBody = document.getElementById('summary-body');
             const dateTitlePart = document.getElementById('date-title-part');
+            const editableTitlePart = document.getElementById('editable-title-part');
             const printButton = document.getElementById('print-button');
 
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'LISBOA', 'MALCHER', 'EDUARDO', 'THEODORO', 'PENNA', 'ESCALA'];
+            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'ESCALA'];
 
-            printButton.addEventListener('click', () => {
-                window.print();
-            });
+            printButton.addEventListener('click', () => window.print());
 
             const updateSummary = () => {
                 const agentCounts = {};
@@ -225,13 +259,14 @@
                     });
                 }
             };
-
+            
             const adjustSelectWidth = (selectElement) => {
+                if (!selectElement || !selectElement.options) return;
                 if (!selectElement.value) {
                     selectElement.style.width = '100%';
                     return;
                 }
-                const tempSpan = document.createElement('span');
+                 const tempSpan = document.createElement('span');
                 const style = window.getComputedStyle(selectElement);
                 tempSpan.style.font = style.font;
                 tempSpan.style.visibility = 'hidden';
@@ -245,88 +280,128 @@
                 selectElement.style.width = `${width + 5}px`;
             };
 
+            const saveSchedule = async () => {
+                if (!db) return;
+                const year = parseInt(yearSelect.value);
+                const month = parseInt(monthSelect.value);
+                const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+
+                const dataToSave = {
+                    title: editableTitlePart.textContent,
+                    schedule: {}
+                };
+
+                const selectFields = calendarBody.querySelectorAll('.agent-name-input');
+                selectFields.forEach(field => {
+                    const date = field.dataset.date;
+                    const index = parseInt(field.dataset.index);
+                    if (!dataToSave.schedule[date]) {
+                        dataToSave.schedule[date] = ['', ''];
+                    }
+                    dataToSave.schedule[date][index] = field.value;
+                });
+                
+                await setDoc(scheduleRef, dataToSave, { merge: true });
+            };
+            
+            const loadAndListenForScheduleChanges = (year, month) => {
+                if (!db) return;
+                
+                if (unsubscribeFromSchedule) {
+                    unsubscribeFromSchedule();
+                }
+                const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+
+                unsubscribeFromSchedule = onSnapshot(scheduleRef, (doc) => {
+                    const data = doc.exists() ? doc.data() : null;
+                    editableTitlePart.textContent = data?.title || 'ESCALA ORDINÁRIA';
+                    
+                    const scheduleData = data?.schedule || {};
+                    const allSelects = document.querySelectorAll('.agent-name-input');
+                    allSelects.forEach(select => {
+                        const date = select.dataset.date;
+                        const index = parseInt(select.dataset.index);
+                        select.value = scheduleData[date]?.[index] || '';
+                        adjustSelectWidth(select);
+                    });
+                    updateSummary();
+                });
+            };
+
             const generateCalendar = (year, month) => {
                 calendarBody.innerHTML = '';
                 const startDate = new Date(year, month, 16);
                 const endDate = new Date(year, month + 1, 15);
                 
                 let currentDate = new Date(startDate);
-                while (currentDate.getDay() !== 1) { // 1 = Segunda-feira
-                    currentDate.setDate(currentDate.getDate() - 1);
-                }
+                while (currentDate.getDay() !== 1) { currentDate.setDate(currentDate.getDate() - 1); }
 
                 const weeks = [];
                 let loopEndDate = new Date(endDate);
-                // Garante que a última semana seja incluída, mesmo que comece no último dia
                 while (weeks.length === 0 || loopEndDate >= currentDate) {
-                    let week = [];
+                    let week = Array(7).fill(null);
                     for (let i = 0; i < 7; i++) {
                         if (currentDate >= startDate && currentDate <= endDate) {
-                            week.push(new Date(currentDate));
-                        } else {
-                            week.push(null);
+                            week[i] = new Date(currentDate);
                         }
                         currentDate.setDate(currentDate.getDate() + 1);
                     }
-                    if (week.some(d => d !== null)) {
-                        weeks.push(week);
-                    }
-                    if (currentDate > endDate && !week.some(d => d !== null)) break;
+                    if (week.some(d => d !== null)) weeks.push(week);
+                    if (currentDate > endDate && week.every(d => d === null)) break;
                 }
                 
-                let firstMonthRendered = false;
-                let secondMonthRendered = false;
-
-                weeks.forEach((week) => {
+                let monthRowspans = {};
+                weeks.forEach(week => {
+                    week.forEach(day => {
+                        if (day) {
+                           const monthKey = day.getMonth();
+                           monthRowspans[monthKey] = (monthRowspans[monthKey] || 0) + 1;
+                        }
+                    });
+                });
+                 
+                let renderedMonths = [];
+                weeks.forEach(week => {
                     const row = document.createElement('tr');
                     const firstDayOfWeek = week.find(d => d);
-
-                    // Adiciona a célula do mês na primeira linha de cada mês
-                    if (firstDayOfWeek) {
-                        if (firstDayOfWeek.getMonth() === startDate.getMonth() && !firstMonthRendered) {
-                            const monthCell = document.createElement('td');
-                            monthCell.classList.add('font-bold', 'text-sm', 'text-white', 'p-2', 'bg-indigo-300');
-                            monthCell.style.writingMode = 'vertical-rl';
-                            monthCell.style.textOrientation = 'mixed';
-                            monthCell.style.transform = 'rotate(180deg)';
-                            monthCell.textContent = startDate.toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
-                            const rowspan = weeks.filter(w => w.some(d => d && d.getMonth() === startDate.getMonth())).length;
-                            monthCell.setAttribute('rowspan', rowspan);
-                            row.appendChild(monthCell);
-                            firstMonthRendered = true;
-                        } else if (firstDayOfWeek.getMonth() === endDate.getMonth() && !secondMonthRendered) {
-                            const monthCell = document.createElement('td');
-                            monthCell.classList.add('font-bold', 'text-sm', 'text-white', 'p-2', 'bg-blue-300');
-                            monthCell.style.writingMode = 'vertical-rl';
-                            monthCell.style.textOrientation = 'mixed';
-                            monthCell.style.transform = 'rotate(180deg)';
-                            monthCell.textContent = endDate.toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
-                            const rowspan = weeks.filter(w => w.some(d => d && d.getMonth() === endDate.getMonth())).length;
-                            monthCell.setAttribute('rowspan', rowspan);
-                            row.appendChild(monthCell);
-                            secondMonthRendered = true;
-                        }
+                    
+                    if (firstDayOfWeek && !renderedMonths.includes(firstDayOfWeek.getMonth())) {
+                        const monthKey = firstDayOfWeek.getMonth();
+                        const monthName = new Date(firstDayOfWeek.getFullYear(), monthKey).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+                        const colorClass = monthKey === startDate.getMonth() ? 'bg-indigo-300' : 'bg-blue-300';
+                        
+                        const monthCell = document.createElement('td');
+                        monthCell.classList.add('font-bold', 'text-sm', 'text-white', 'p-2', colorClass);
+                        monthCell.style.writingMode = 'vertical-rl';
+                        monthCell.style.textOrientation = 'mixed';
+                        monthCell.style.transform = 'rotate(180deg)';
+                        monthCell.textContent = monthName;
+                        
+                        const rowspan = Math.ceil(monthRowspans[monthKey] / 7);
+                        monthCell.setAttribute('rowspan', rowspan);
+                        row.appendChild(monthCell);
+                        renderedMonths.push(monthKey);
                     }
 
                     week.forEach((day, dayIndex) => {
                         const cell = document.createElement('td');
                         cell.classList.add('border', 'border-slate-200', 'h-24', 'p-1', 'align-top');
-                        
-                        if (dayIndex >= 5) { // Sábado e Domingo
-                            cell.classList.add('bg-slate-50');
-                        }
+                        if (dayIndex >= 5) cell.classList.add('bg-slate-50');
 
                         if (day) {
                             const monthShort = day.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
-                            cell.classList.add('calendar-cell');
+                            const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
                             cell.innerHTML = `
                                 <div class="date-label text-center font-bold text-indigo-800 text-xs mb-1">${day.getDate()}/${monthShort}</div>
-                                <div class="flex flex-col justify-start items-center space-y-1 px-2"></div>
-                            `;
+                                <div class="flex flex-col justify-start items-center space-y-1 px-2"></div>`;
                             const container = cell.querySelector('.flex-col');
                             for (let i = 0; i < 2; i++) {
                                 const select = document.createElement('select');
                                 select.classList.add('agent-name-input');
+                                select.dataset.date = dateString;
+                                select.dataset.index = i;
                                 let optionsHTML = '<option value=""></option>';
                                 ALLOWED_NAMES.forEach(name => {
                                     optionsHTML += `<option value="${name}">${name}</option>`;
@@ -335,6 +410,7 @@
                                 select.addEventListener('change', () => {
                                     updateSummary();
                                     adjustSelectWidth(select);
+                                    saveSchedule();
                                 });
                                 container.appendChild(select);
                             }
@@ -343,6 +419,7 @@
                     });
                     calendarBody.appendChild(row);
                 });
+                loadAndListenForScheduleChanges(year, month);
             };
             
             const updateTitle = (year, month) => {
@@ -350,9 +427,7 @@
                 const secondMonth = (month + 1) % 12;
                 const secondMonthName = PT_BR_MONTHS[secondMonth];
                 let yearOfSecondMonth = year;
-                if (firstMonthName === 'DEZEMBRO') {
-                    yearOfSecondMonth = year + 1;
-                }
+                if (month === 11) { yearOfSecondMonth++; }
                 dateTitlePart.textContent = ` - ${firstMonthName}/${secondMonthName} - ${yearOfSecondMonth}`;
             };
             
@@ -361,15 +436,13 @@
                 const month = parseInt(monthSelect.value);
                 generateCalendar(year, month);
                 updateTitle(year, month);
-                updateSummary();
             };
 
             const initialize = () => {
                 const today = new Date();
                 const currentYear = today.getFullYear();
-                const currentMonth = today.getMonth();
+                let currentMonth = today.getMonth();
 
-                // Populate month select
                 PT_BR_MONTHS.forEach((monthName, index) => {
                     const option = document.createElement('option');
                     option.value = index;
@@ -377,7 +450,6 @@
                     monthSelect.appendChild(option);
                 });
 
-                // Populate year select
                 for (let i = currentYear - 5; i <= currentYear + 5; i++) {
                     const option = document.createElement('option');
                     option.value = i;
@@ -385,14 +457,13 @@
                     yearSelect.appendChild(option);
                 }
 
-                // Set initial date based on current day
                 let initialMonth = currentMonth;
                 let initialYear = currentYear;
                 if (today.getDate() <= 15) {
                    initialMonth = currentMonth - 1;
                    if (initialMonth < 0) {
                        initialMonth = 11;
-                       initialYear = currentYear - 1;
+                       initialYear--;
                    }
                 }
                 
@@ -404,9 +475,11 @@
 
             monthSelect.addEventListener('change', handleDateChange);
             yearSelect.addEventListener('change', handleDateChange);
-
+            editableTitlePart.addEventListener('blur', saveSchedule);
             initialize();
-        });
+        };
+
+        main();
     </script>
 </body>
 </html>
