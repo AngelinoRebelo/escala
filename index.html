@@ -55,7 +55,11 @@
             background-color: rgba(0, 0, 0, 0.5);
         }
         @media print {
-            body { background-color: #fff !important; }
+            body { 
+                background-color: #fff !important; 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
             #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button { display: none !important; }
             main { max-width: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
             #past-scales-view { display: none !important; }
@@ -65,19 +69,23 @@
             td, th {
                 border: 2px solid #cbd5e1 !important; /* slate-300 */
             }
-            .bg-slate-900, .bg-slate-800, .bg-slate-100, .bg-slate-200, .bg-indigo-300, .bg-blue-300 { 
-                background-color: #fff !important; 
-                color: #1e2d3b !important; 
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+            .bg-slate-900 { 
+                background-color: #0f172a !important; 
+                color: #fff !important; 
             }
+            .bg-indigo-300 { background-color: #a5b4fc !important; }
+            .bg-blue-300 { background-color: #93c5fd !important; }
+            .bg-slate-50 { background-color: #f8fafc !important; }
+            .bg-slate-100 { background-color: #f1f5f9 !important; }
+            .bg-slate-200 { background-color: #e2e8f0 !important; }
+
             th, td { color: #000 !important; }
             .summary-table-header { border-bottom: 1px solid #ccc !important; }
             select.agent-name-input { display:none !important; }
              .static-agent-name { 
                 display: block !important;
-                font-weight: 700;
-                font-size: 0.8rem;
+                font-weight: 900;
+                font-size: 0.85rem;
                 text-align: center;
                 padding: 4px 8px;
             }
@@ -307,13 +315,12 @@
                     }
                 });
             
-                const cleanupAfterPrint = () => {
+                // Give the browser a moment to render the new elements before printing
+                setTimeout(() => {
+                    window.print();
+                    // Cleanup happens after print dialog is closed
                     staticNames.forEach(el => el.remove());
-                    window.removeEventListener('afterprint', cleanupAfterPrint);
-                };
-            
-                window.addEventListener('afterprint', cleanupAfterPrint);
-                window.print();
+                }, 100);
             });
 
             const updateSummary = () => {
@@ -669,5 +676,4 @@
     </script>
 </body>
 </html>
-
 
