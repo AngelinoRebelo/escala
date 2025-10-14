@@ -128,6 +128,7 @@
             <div class="title-container flex-grow">
                  <h1 class="text-2xl font-bold text-slate-700">
                     <span id="editable-title-part" contenteditable="false" class="rounded-md px-2">ESCALA ORDINÁRIA</span>
+                    <span id="location-part"></span>
                     <span id="date-title-part"></span>
                 </h1>
             </div>
@@ -220,6 +221,7 @@
             const summaryBody = document.getElementById('summary-body');
             const dateTitlePart = document.getElementById('date-title-part');
             const editableTitlePart = document.getElementById('editable-title-part');
+            const locationPart = document.getElementById('location-part');
             const printButton = document.getElementById('print-button');
             const saveButton = document.getElementById('save-button');
             const loginButton = document.getElementById('login-button');
@@ -237,7 +239,7 @@
             const LOGIN_PASS = '3458';
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-            const ALLOWED_NAMES = ['GARCEZ', 'WASHINGTON', 'GABRIEL','LEANDRO', 'VIEIRA', 'LISBOA', 'MALCHER', 'THEODORO', 'PENNA', 'EDUARDO', 'ESCALA'];
+            const ALLOWED_NAMES = ['EDUARDO', 'ESCALA', 'GABRIEL', 'GARCEZ', 'LEANDRO', 'LISBOA', 'MALCHER', 'PENNA', 'THEODORO', 'VIEIRA', 'WASHINGTON'];
 
             const enableEditing = () => {
                 editableTitlePart.contentEditable = "true";
@@ -597,6 +599,12 @@
                 const scheduleType = scheduleTypeSelect.value;
                 generateCalendar(year, month, scheduleType);
                 updateTitle(year, month);
+                
+                if (scheduleType === 'ordinaria') {
+                    locationPart.textContent = ' - DNA. MARIANA';
+                } else {
+                    locationPart.textContent = '';
+                }
             };
 
             const initialize = () => {
@@ -676,4 +684,5 @@
     </script>
 </body>
 </html>
+
 
