@@ -155,45 +155,6 @@
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth;
-        let isAppInitialized = false;
-
-        const main = () => {
-            const firebaseConfig = {
-                apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
-                authDomain: "escala-26e73.firebaseapp.com",
-                projectId: "escala-26e73",
-                storageBucket: "escala-26e73.appspot.com",
-                messagingSenderId: "1084570993293",
-                appId: "1:1084570993293:web:cab3627f9527b55da198c4"
-            };
-            
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                alert("Erro na inicialização do Firebase. Verifique se a sua configuração está correta.");
-                return;
-            }
-
-            onAuthStateChanged(auth, user => {
-                if (user) {
-                    // User is signed in.
-                    console.log("Authenticated successfully with UID:", user.uid);
-                    if (!isAppInitialized) {
-                        initializeAppLogic();
-                        isAppInitialized = true;
-                    }
-                } else {
-                    // User is signed out. Attempt to sign in anonymously.
-                    signInAnonymously(auth).catch(err => {
-                        console.error("Anonymous sign-in failed:", err);
-                        alert("Falha na autenticação. Não será possível carregar ou salvar dados.");
-                    });
-                }
-            });
-        };
 
         const initializeAppLogic = () => {
             const appId = 'escala-de-plantoes-v1';
@@ -264,7 +225,7 @@
             };
 
             const saveScheduleData = async () => {
-                if (!db) return;
+                if (!db || !auth.currentUser) return;
                 saveButton.disabled = true;
                 saveButton.textContent = 'Salvando...';
 
@@ -305,7 +266,7 @@
             };
 
             const loadScheduleData = async (year, month) => {
-                if (!db) return;
+                if (!db || !auth.currentUser) return;
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
                 const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
                 
@@ -330,7 +291,7 @@
             };
 
             const loadPreviousScales = async () => {
-                if (!db) return;
+                if (!db || !auth.currentUser) return;
                 pastScalesList.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
                 const schedulesRef = collection(db, `schedules/${appId}/periods`);
                 try {
@@ -454,7 +415,11 @@
                     calendarBody.appendChild(row);
                 });
                 
-                loadScheduleData(year, month);
+                if (auth.currentUser) {
+                    loadScheduleData(year, month);
+                } else {
+                    updateSummary();
+                }
             };
             
             const updateTitle = (year, month) => {
@@ -506,8 +471,47 @@
             monthSelect.addEventListener('change', handleDateChange);
             yearSelect.addEventListener('change', handleDateChange);
             
-            // A inicialização agora acontece dentro do listener onAuthStateChanged
-            // initialize(); 
+            initialize(); 
+        };
+
+        const main = () => {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
+                authDomain: "escala-26e73.firebaseapp.com",
+                projectId: "escala-26e73",
+                storageBucket: "escala-26e73.appspot.com",
+                messagingSenderId: "1084570993293",
+                appId: "1:1084570993293:web:cab3627f9527b55da198c4"
+            };
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        console.log("Authenticated successfully.");
+                         // Apenas inicializa a lógica completa da UI após a autenticação
+                        if (document.getElementById('calendar-body').innerHTML === '') {
+                           initializeAppLogic();
+                        }
+                    } else {
+                        signInAnonymously(auth).catch(err => {
+                             console.error("Anonymous sign-in failed:", err);
+                             // Se o login anônimo falhar, ainda inicializa a UI para uso local
+                             if (document.getElementById('calendar-body').innerHTML === '') {
+                                initializeAppLogic();
+                             }
+                        });
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                // Mesmo se o Firebase falhar, inicializa a UI para uso local
+                initializeAppLogic();
+            }
         };
 
         main();
