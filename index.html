@@ -6,7 +6,6 @@
     <title>Painel de Escala</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- A biblioteca html2pdf.js foi removida -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -42,7 +41,7 @@
             color: #4338ca;
             font-weight: 700;
         }
-        @media print, .static-html-export-mode {
+        @media print {
             body { background-color: #fff !important; }
             #controls-header, #print-button-container, #tabs-nav, #save-button { display: none !important; }
             main { max-width: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
@@ -62,12 +61,12 @@
                 padding: 4px 8px;
             }
         }
-         @media print and (orientation: landscape), .static-html-export-mode[data-orientation="landscape"] {
+         @media print and (orientation: landscape) {
             #print-layout-container { display: flex !important; flex-direction: row !important; align-items: flex-start; width: 100% !important; gap: 20px; }
             .table-container { flex-grow: 1 !important; width: auto !important; }
             .summary-container { flex-shrink: 0 !important; width: 240px !important; margin-left: 0 !important; }
         }
-        @media print and (orientation: portrait), .static-html-export-mode[data-orientation="portrait"] {
+        @media print and (orientation: portrait) {
             #print-layout-container { display: flex !important; flex-direction: column !important; width: 100% !important; }
             .table-container, .summary-container { width: 100% !important; margin-top: 20px !important; margin-left: 0 !important; }
         }
@@ -152,13 +151,13 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        let db, auth, storage;
+        let db, auth;
+        let isAppInitialized = false;
 
-        const main = async () => {
+        const main = () => {
             const firebaseConfig = {
                 apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
                 authDomain: "escala-26e73.firebaseapp.com",
@@ -168,19 +167,36 @@
                 appId: "1:1084570993293:web:cab3627f9527b55da198c4"
             };
             
-            const appId = 'escala-de-plantoes-v1';
-            
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                storage = getStorage(app);
-                await signInAnonymously(auth);
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 alert("Erro na inicialização do Firebase. Verifique se a sua configuração está correta.");
+                return;
             }
 
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    // User is signed in.
+                    console.log("Authenticated successfully with UID:", user.uid);
+                    if (!isAppInitialized) {
+                        initializeAppLogic();
+                        isAppInitialized = true;
+                    }
+                } else {
+                    // User is signed out. Attempt to sign in anonymously.
+                    signInAnonymously(auth).catch(err => {
+                        console.error("Anonymous sign-in failed:", err);
+                        alert("Falha na autenticação. Não será possível carregar ou salvar dados.");
+                    });
+                }
+            });
+        };
+
+        const initializeAppLogic = () => {
+            const appId = 'escala-de-plantoes-v1';
             const monthSelect = document.getElementById('month-select');
             const yearSelect = document.getElementById('year-select');
             const calendarBody = document.getElementById('calendar-body');
@@ -194,9 +210,20 @@
             const pastScalesList = document.getElementById('past-scales-list');
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'LISBOA', 'MALCHER', 'THEODORO', 'PENNA', 'EDUARDO', 'ESCALA'];
+            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'ESCALA'];
 
-            printButton.addEventListener('click', () => window.print());
+            printButton.addEventListener('click', () => {
+                document.querySelectorAll('.agent-name-input').forEach(select => {
+                    if (select.value) {
+                        const nameDiv = document.createElement('div');
+                        nameDiv.className = 'static-agent-name';
+                        nameDiv.textContent = select.value;
+                        select.parentNode.appendChild(nameDiv);
+                    }
+                });
+                window.print();
+                document.querySelectorAll('.static-agent-name').forEach(el => el.remove());
+            });
 
             const updateSummary = () => {
                 const agentCounts = {};
@@ -233,95 +260,40 @@
                 tempSpan.textContent = selectElement.options[selectElement.selectedIndex].text;
                 document.body.appendChild(tempSpan);
                 selectElement.style.width = `${tempSpan.offsetWidth + 5}px`;
+                document.body.removeChild(tempSpan);
             };
 
-            const generateStaticHtml = () => {
-                const escapeHTML = str => str.replace(/[&<>'"]/g, 
-                  tag => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-                  }[tag] || tag));
-                
-                // 1. Create a new document in memory
-                const staticDoc = document.implementation.createHTMLDocument("Escala Salva");
-                
-                // 2. Build the <head>
-                staticDoc.head.innerHTML = `
-                    <meta charset="UTF-8">
-                    <title>${escapeHTML(editableTitlePart.textContent)}${escapeHTML(dateTitlePart.textContent)}</title>
-                    <script src="https://cdn.tailwindcss.com"><\/script>
-                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-                    <style>${document.querySelector('style').innerHTML}</style>
-                `;
-
-                // 3. Build the <body>
-                staticDoc.body.className = "p-4 sm:p-6 md:p-8";
-
-                const main = staticDoc.createElement('main');
-                main.className = "max-w-none mx-auto bg-white p-6 rounded-2xl";
-
-                const titleContainer = staticDoc.createElement('div');
-                titleContainer.className = "title-container";
-                titleContainer.style.display = 'flex';
-                titleContainer.style.justifyContent = 'center';
-                titleContainer.style.marginBottom = '1rem';
-                titleContainer.innerHTML = `<h1 class="text-2xl font-bold text-slate-700">${escapeHTML(editableTitlePart.textContent)}<span>${escapeHTML(dateTitlePart.textContent)}</span></h1>`;
-
-                const exportContainer = staticDoc.createElement('div');
-                exportContainer.className = "static-html-export-mode";
-                exportContainer.dataset.orientation = "landscape";
-
-                const layoutClone = document.getElementById('print-layout-container').cloneNode(true);
-                layoutClone.querySelectorAll('.agent-name-input').forEach(select => {
-                    const parent = select.parentNode;
-                    if (select.value) {
-                        const nameDiv = staticDoc.createElement('div');
-                        nameDiv.className = 'static-agent-name';
-                        nameDiv.textContent = select.value;
-                        parent.appendChild(nameDiv);
-                    }
-                    select.remove();
-                });
-
-                exportContainer.appendChild(layoutClone);
-                main.appendChild(titleContainer);
-                main.appendChild(exportContainer);
-                staticDoc.body.appendChild(main);
-
-                // 4. Serialize the new document to a string
-                return "<!DOCTYPE html>\n" + staticDoc.documentElement.outerHTML;
-            };
-
-            const saveScheduleAsHtml = async () => {
-                if (!db || !storage) return;
+            const saveScheduleData = async () => {
+                if (!db) return;
                 saveButton.disabled = true;
-                saveButton.textContent = 'Gerando HTML...';
+                saveButton.textContent = 'Salvando...';
 
                 const year = parseInt(yearSelect.value);
                 const month = parseInt(monthSelect.value);
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
-                const filename = `escala_${docId}.html`;
+                
+                const scheduleData = {};
+                calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
+                    const date = field.dataset.date;
+                    const index = parseInt(field.dataset.index);
+                    if (field.value) {
+                        if (!scheduleData[date]) scheduleData[date] = ['', ''];
+                        scheduleData[date][index] = field.value;
+                    }
+                });
+
+                const dataToSave = {
+                    title: editableTitlePart.textContent,
+                    schedule: scheduleData,
+                    createdAt: new Date()
+                };
 
                 try {
-                    const staticHtmlString = generateStaticHtml();
-                    const htmlBlob = new Blob([staticHtmlString], { type: 'text/html' });
-
-                    saveButton.textContent = 'Enviando...';
-                    const storageRef = ref(storage, `schedules_html/${appId}/${filename}`);
-                    await uploadBytes(storageRef, htmlBlob);
-                    const downloadURL = await getDownloadURL(storageRef);
-
                     const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
-                    const dataToSave = {
-                        title: editableTitlePart.textContent,
-                        htmlUrl: downloadURL,
-                        filename: filename,
-                        createdAt: new Date()
-                    };
-                    await setDoc(scheduleRef, dataToSave, { merge: true });
-
+                    await setDoc(scheduleRef, dataToSave);
                     saveButton.textContent = 'Salvo ✓';
                 } catch (error) {
-                    console.error("Error saving HTML schedule: ", error);
+                    console.error("Error saving schedule data: ", error);
                     saveButton.textContent = 'Erro ao Salvar';
                     alert(`Ocorreu um erro ao salvar a escala. Verifique o console para mais detalhes.\nCódigo: ${error.code}`);
                 } finally {
@@ -331,7 +303,32 @@
                     }, 2000);
                 }
             };
-            
+
+            const loadScheduleData = async (year, month) => {
+                if (!db) return;
+                const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                
+                try {
+                    const docSnap = await getDoc(scheduleRef);
+                    const data = docSnap.exists() ? docSnap.data() : null;
+                    
+                    editableTitlePart.textContent = data?.title || 'ESCALA ORDINÁRIA';
+                    const scheduleData = data?.schedule || {};
+
+                    document.querySelectorAll('.agent-name-input').forEach(select => {
+                        const date = select.dataset.date;
+                        const index = parseInt(select.dataset.index);
+                        select.value = scheduleData[date]?.[index] || '';
+                        adjustSelectWidth(select);
+                    });
+                    updateSummary();
+
+                } catch(error) {
+                    console.error("Error loading schedule data:", error);
+                }
+            };
+
             const loadPreviousScales = async () => {
                 if (!db) return;
                 pastScalesList.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
@@ -350,24 +347,21 @@
                     scales.sort((a, b) => b.id.localeCompare(a.id));
 
                     scales.forEach(scale => {
-                        if(!scale.htmlUrl) return; 
                         const [year, month] = scale.id.split('-');
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
-                        const cardLink = document.createElement('a');
-                        cardLink.href = scale.htmlUrl;
-                        cardLink.target = '_blank';
-                        cardLink.download = scale.filename || `escala_${scale.id}.html`;
-                        cardLink.rel = 'noopener noreferrer';
-                        cardLink.className = 'block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
-                        cardLink.innerHTML = `
+                        const card = document.createElement('div');
+                        card.className = 'block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
+                        card.innerHTML = `
                             <h3 class="font-bold text-slate-800">${scale.title}</h3>
                             <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
-                            <span class="flex items-center text-xs text-indigo-600 font-semibold mt-2">
-                                Baixar HTML 
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            </span>
                         `;
-                        pastScalesList.appendChild(cardLink);
+                        card.addEventListener('click', () => {
+                             yearSelect.value = year;
+                            monthSelect.value = parseInt(month) - 1;
+                            handleDateChange(); // Gera e carrega a escala
+                            tabsNav.querySelector('button[data-tab="current-scale"]').click();
+                        });
+                        pastScalesList.appendChild(card);
                     });
                 } catch (error) {
                     console.error("Error fetching previous scales:", error);
@@ -459,7 +453,8 @@
                     });
                     calendarBody.appendChild(row);
                 });
-                updateSummary();
+                
+                loadScheduleData(year, month);
             };
             
             const updateTitle = (year, month) => {
@@ -507,10 +502,12 @@
                 handleDateChange();
             };
             
-            saveButton.addEventListener('click', saveScheduleAsHtml);
+            saveButton.addEventListener('click', saveScheduleData);
             monthSelect.addEventListener('change', handleDateChange);
             yearSelect.addEventListener('change', handleDateChange);
-            initialize();
+            
+            // A inicialização agora acontece dentro do listener onAuthStateChanged
+            // initialize(); 
         };
 
         main();
