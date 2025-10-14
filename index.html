@@ -63,7 +63,7 @@
             .title-container { justify-content: center !important; margin-bottom: 1rem !important; }
             table { border-collapse: collapse !important; }
             td, th {
-                border: 1px solid #e2e8f0 !important; /* slate-200 */
+                border: 2px solid #cbd5e1 !important; /* slate-300 */
             }
             .bg-slate-900, .bg-slate-800, .bg-slate-100, .bg-slate-200, .bg-indigo-300, .bg-blue-300 { 
                 background-color: #fff !important; 
@@ -540,12 +540,12 @@
 
                     week.forEach((day, dayIndex) => {
                         const cell = document.createElement('td');
-                        cell.className = `border border-slate-200 h-24 p-1 align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
+                        cell.className = `border-2 border-slate-300 h-24 p-1 align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
                         if (day) {
                             const monthShort = day.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
                             const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
                             cell.innerHTML = `
-                                <div class="date-label text-center font-bold text-indigo-800 text-xs mb-1">${day.getDate()}/${monthShort}</div>
+                                <div class="flex justify-center mb-1"><span class="date-label inline-block bg-indigo-200 text-indigo-900 text-sm font-bold px-3 py-1 rounded-full shadow-sm">${day.getDate()}/${monthShort}</span></div>
                                 <div class="flex flex-col justify-start items-center space-y-1 px-2"></div>`;
                             const container = cell.querySelector('.flex-col');
                             for (let i = 0; i < 2; i++) {
