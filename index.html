@@ -31,6 +31,11 @@
             transition: all 0.2s ease-in-out;
             background-image: none;
         }
+        .agent-name-input:disabled {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
         .agent-name-input:focus {
             outline: none;
             box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
@@ -41,9 +46,12 @@
             color: #4338ca;
             font-weight: 700;
         }
+        #login-modal {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
         @media print {
             body { background-color: #fff !important; }
-            #controls-header, #print-button-container, #tabs-nav, #save-button { display: none !important; }
+            #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button { display: none !important; }
             main { max-width: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
             #past-scales-view { display: none !important; }
             #current-scale-view { display: block !important; }
@@ -73,12 +81,32 @@
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
+
+    <!-- Modal de Login -->
+    <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">Acesso Restrito</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-slate-700">Usuário</label>
+                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-slate-700">Senha</label>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm text-center mb-4 hidden">Usuário ou senha inválidos.</p>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Entrar</button>
+            </form>
+        </div>
+    </div>
+
     <main class="max-w-none mx-auto bg-white p-6 rounded-2xl shadow-lg">
         <!-- Cabeçalho com Título e Controles -->
         <div id="header" class="flex items-center justify-between w-full mb-4">
             <div class="title-container flex-grow">
                  <h1 class="text-2xl font-bold text-slate-700">
-                    <span id="editable-title-part" contenteditable="true" class="hover:bg-slate-200 rounded-md px-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">ESCALA ORDINÁRIA</span>
+                    <span id="editable-title-part" contenteditable="false" class="rounded-md px-2">ESCALA ORDINÁRIA</span>
                     <span id="date-title-part"></span>
                 </h1>
             </div>
@@ -87,6 +115,8 @@
                     <select id="month-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                     <select id="year-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                  </div>
+                 <button id="login-button" class="px-4 py-2 bg-slate-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-slate-700">Login para Editar</button>
+                 <button id="logout-button" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-red-700 hidden">Sair</button>
                  <button id="save-button" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">Salvar Escala</button>
                  <div id="print-button-container" class="relative w-8 h-8 flex items-center justify-center">
                     <button id="print-button" class="text-slate-600 hover:text-indigo-600 opacity-0 hover:opacity-100 transition-opacity" title="Imprimir Escala">
@@ -166,12 +196,86 @@
             const editableTitlePart = document.getElementById('editable-title-part');
             const printButton = document.getElementById('print-button');
             const saveButton = document.getElementById('save-button');
+            const loginButton = document.getElementById('login-button');
+            const logoutButton = document.getElementById('logout-button');
+            const loginModal = document.getElementById('login-modal');
+            const loginForm = document.getElementById('login-form');
+            const loginError = document.getElementById('login-error');
             const tabsNav = document.getElementById('tabs-nav');
             const tabContents = document.querySelectorAll('.tab-content');
             const pastScalesList = document.getElementById('past-scales-list');
+
+            let sessionTimeoutId = null;
+            const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+            const LOGIN_USER = 'escala';
+            const LOGIN_PASS = '3458';
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'LISBOA', 'MALCHER', 'THEODORO', 'PENNA', 'EDUARDO', 'ESCALA'];
+            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'ESCALA'];
+
+            const enableEditing = () => {
+                editableTitlePart.contentEditable = "true";
+                editableTitlePart.classList.add('hover:bg-slate-200', 'focus:ring-2', 'focus:ring-indigo-400');
+                document.querySelectorAll('.agent-name-input').forEach(el => el.disabled = false);
+                saveButton.disabled = false;
+                loginButton.classList.add('hidden');
+                logoutButton.classList.remove('hidden');
+            };
+
+            const disableEditing = () => {
+                editableTitlePart.contentEditable = "false";
+                editableTitlePart.classList.remove('hover:bg-slate-200', 'focus:ring-2', 'focus:ring-indigo-400');
+                document.querySelectorAll('.agent-name-input').forEach(el => el.disabled = true);
+                saveButton.disabled = true;
+                loginButton.classList.remove('hidden');
+                logoutButton.classList.add('hidden');
+            };
+            
+            const resetSessionTimer = () => {
+                clearTimeout(sessionTimeoutId);
+                sessionTimeoutId = setTimeout(() => {
+                    alert('Sua sessão de edição expirou por inatividade.');
+                    logout();
+                }, SESSION_TIMEOUT_MS);
+            };
+
+            const logout = () => {
+                disableEditing();
+                clearTimeout(sessionTimeoutId);
+                sessionTimeoutId = null;
+            };
+
+            loginButton.addEventListener('click', () => loginModal.classList.remove('hidden'));
+            logoutButton.addEventListener('click', logout);
+
+            loginModal.addEventListener('click', (e) => {
+                if (e.target === loginModal) {
+                    loginModal.classList.add('hidden');
+                }
+            });
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = e.target.username.value;
+                const password = e.target.password.value;
+                if (username === LOGIN_USER && password === LOGIN_PASS) {
+                    enableEditing();
+                    resetSessionTimer();
+                    loginModal.classList.add('hidden');
+                    loginError.classList.add('hidden');
+                    e.target.reset();
+                } else {
+                    loginError.classList.remove('hidden');
+                }
+            });
+            
+            ['click', 'mousemove', 'keypress', 'change'].forEach(event => {
+                document.addEventListener(event, () => {
+                    if (sessionTimeoutId) {
+                        resetSessionTimer();
+                    }
+                });
+            });
 
             printButton.addEventListener('click', () => {
                 document.querySelectorAll('.agent-name-input').forEach(select => {
@@ -319,7 +423,7 @@
                         card.addEventListener('click', () => {
                              yearSelect.value = year;
                             monthSelect.value = parseInt(month) - 1;
-                            handleDateChange(); // Gera e carrega a escala
+                            handleDateChange();
                             tabsNav.querySelector('button[data-tab="current-scale"]').click();
                         });
                         pastScalesList.appendChild(card);
@@ -415,11 +519,12 @@
                     calendarBody.appendChild(row);
                 });
                 
-                if (auth.currentUser) {
+                if (auth && auth.currentUser) {
                     loadScheduleData(year, month);
                 } else {
                     updateSummary();
                 }
+                disableEditing();
             };
             
             const updateTitle = (year, month) => {
@@ -475,6 +580,8 @@
         };
 
         const main = () => {
+            initializeAppLogic();
+            
             const firebaseConfig = {
                 apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
                 authDomain: "escala-26e73.firebaseapp.com",
@@ -492,25 +599,19 @@
                 onAuthStateChanged(auth, user => {
                     if (user) {
                         console.log("Authenticated successfully.");
-                         // Apenas inicializa a lógica completa da UI após a autenticação
-                        if (document.getElementById('calendar-body').innerHTML === '') {
-                           initializeAppLogic();
-                        }
+                        // Após autenticar, recarrega os dados da escala atual
+                        const year = parseInt(document.getElementById('year-select').value);
+                        const month = parseInt(document.getElementById('month-select').value);
+                        document.querySelector('#loadScheduleData')?.(year, month);
                     } else {
                         signInAnonymously(auth).catch(err => {
                              console.error("Anonymous sign-in failed:", err);
-                             // Se o login anônimo falhar, ainda inicializa a UI para uso local
-                             if (document.getElementById('calendar-body').innerHTML === '') {
-                                initializeAppLogic();
-                             }
                         });
                     }
                 });
 
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                // Mesmo se o Firebase falhar, inicializa a UI para uso local
-                initializeAppLogic();
             }
         };
 
