@@ -6,12 +6,12 @@
     <title>Painel de Escala</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" xintegrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9; /* slate-100 */
         }
-        /* Estilos para o campo de seleção de nomes */
         .agent-name-input {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -34,87 +34,34 @@
         }
         .agent-name-input:focus {
             outline: none;
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); /* Anel de foco indigo */
-            border-color: #6366f1; /* indigo-500 */
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+            border-color: #6366f1;
         }
-
-        /* Estilos para impressão */
+        .tab-button.active {
+            border-bottom-color: #6366f1;
+            color: #4338ca;
+            font-weight: 700;
+        }
         @media print {
-            body {
-                background-color: #fff !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            #controls-header, #print-button-container {
-                display: none !important;
-            }
-            main {
-                max-width: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
-            .title-container {
-                justify-content: center !important;
-                margin-bottom: 1rem !important;
-            }
-            table {
-                border-collapse: collapse !important;
-            }
-            .bg-slate-900, .bg-slate-800 {
-                background-color: #fff !important;
-                color: #1e2d3b !important;
-            }
-             th, td {
-                color: #000 !important;
-            }
-            .summary-table-header {
-                border-bottom: 1px solid #ccc !important;
-            }
-            select.agent-name-input {
-                appearance: none !important;
-                -webkit-appearance: none !important;
-                -moz-appearance: none !important;
-                background-image: none !important; /* Remove a seta */
-                padding-right: 8px !important;
-                opacity: 1 !important;
-                box-shadow: none !important;
-                border: 1px solid #ccc !important;
-            }
-        
-            /* Layout para PAISAGEM (Landscape) */
+            body { background-color: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            #controls-header, #print-button-container, #tabs-nav, #save-button { display: none !important; }
+            main { max-width: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
+            #past-scales-view { display: none !important; }
+            #current-scale-view { display: block !important; }
+            .title-container { justify-content: center !important; margin-bottom: 1rem !important; }
+            table { border-collapse: collapse !important; }
+            .bg-slate-900, .bg-slate-800 { background-color: #fff !important; color: #1e2d3b !important; }
+            th, td { color: #000 !important; }
+            .summary-table-header { border-bottom: 1px solid #ccc !important; }
+            select.agent-name-input { appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; background-image: none !important; padding-right: 8px !important; opacity: 1 !important; box-shadow: none !important; border: 1px solid #ccc !important; }
             @media (orientation: landscape) {
-                #print-layout-container {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: flex-start;
-                    width: 100% !important;
-                    gap: 20px; /* Espaçamento entre os elementos */
-                }
-                .table-container { 
-                    flex-grow: 1 !important; /* Permite que a tabela cresça */
-                    width: auto !important; /* Remove a largura fixa */
-                }
-                .summary-container { 
-                    flex-shrink: 0 !important; /* Impede que o resumo encolha */
-                    width: 240px !important; /* Largura fixa ideal para o resumo */
-                    margin-left: 0 !important;
-                }
+                #print-layout-container { display: flex !important; flex-direction: row !important; align-items: flex-start; width: 100% !important; gap: 20px; }
+                .table-container { flex-grow: 1 !important; width: auto !important; }
+                .summary-container { flex-shrink: 0 !important; width: 240px !important; margin-left: 0 !important; }
             }
-
-            /* Layout para RETRATO (Portrait) */
             @media (orientation: portrait) {
-                #print-layout-container {
-                    display: flex !important;
-                    flex-direction: column !important;
-                    width: 100% !important;
-                }
-                .table-container, .summary-container {
-                    width: 100% !important;
-                    margin-top: 20px !important;
-                    margin-left: 0 !important;
-                }
+                #print-layout-container { display: flex !important; flex-direction: column !important; width: 100% !important; }
+                .table-container, .summary-container { width: 100% !important; margin-top: 20px !important; margin-left: 0 !important; }
             }
         }
     </style>
@@ -122,7 +69,7 @@
 <body class="p-4 sm:p-6 md:p-8">
     <main class="max-w-none mx-auto bg-white p-6 rounded-2xl shadow-lg">
         <!-- Cabeçalho com Título e Controles -->
-        <div id="header" class="flex items-center justify-between w-full mb-6">
+        <div id="header" class="flex items-center justify-between w-full mb-4">
             <div class="title-container flex-grow">
                  <h1 class="text-2xl font-bold text-slate-700">
                     <span id="editable-title-part" contenteditable="true" class="hover:bg-slate-200 rounded-md px-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">ESCALA ORDINÁRIA</span>
@@ -133,67 +80,78 @@
                  <div class="flex items-center gap-2">
                     <select id="month-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                     <select id="year-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
-                </div>
-                <div id="print-button-container" class="relative w-8 h-8 flex items-center justify-center">
+                 </div>
+                 <button id="save-button" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">Salvar Escala</button>
+                 <div id="print-button-container" class="relative w-8 h-8 flex items-center justify-center">
                     <button id="print-button" class="text-slate-600 hover:text-indigo-600 opacity-0 hover:opacity-100 transition-opacity" title="Imprimir Escala">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-printer"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                     </button>
                 </div>
             </div>
         </div>
+        
+        <!-- Navegação das Abas -->
+        <nav id="tabs-nav" class="border-b border-slate-200 mb-6">
+            <button data-tab="current-scale" class="tab-button active py-2 px-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700">Escala Atual</button>
+            <button data-tab="past-scales" class="tab-button py-2 px-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700">Escalas Salvas</button>
+        </nav>
 
-        <div id="print-layout-container" class="flex flex-col lg:flex-row w-full gap-6">
-            <!-- Calendário da Escala -->
-            <div class="flex-grow table-container">
-                <table class="w-full border-collapse text-center">
-                    <thead>
-                        <tr class="bg-slate-900 text-white uppercase text-xs sm:text-sm tracking-wider">
-                            <th class="p-3 w-12 rounded-tl-lg font-bold">Mês</th>
-                            <th class="p-3 font-bold">SEGUNDA</th>
-                            <th class="p-3 font-bold">TERÇA</th>
-                            <th class="p-3 font-bold">QUARTA</th>
-                            <th class="p-3 font-bold">QUINTA</th>
-                            <th class="p-3 font-bold">SEXTA</th>
-                            <th class="p-3 font-bold">SÁBADO</th>
-                            <th class="p-3 rounded-tr-lg font-bold">DOMINGO</th>
-                        </tr>
-                    </thead>
-                    <tbody id="calendar-body" class="bg-white">
-                        <!-- Linhas do calendário serão geradas pelo JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Resumo de Plantões -->
-            <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
-                <div class="bg-slate-100 p-4 rounded-lg h-full">
-                    <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
-                    <table class="w-full mt-4 text-sm">
-                        <thead class="summary-table-header">
-                            <tr class="text-left">
-                                <th class="pb-2 font-bold text-slate-600">Agente</th>
-                                <th class="pb-2 font-bold text-slate-600 text-right">Total</th>
+        <!-- Conteúdo da Aba "Escala Atual" -->
+        <div id="current-scale-view" class="tab-content">
+            <div id="print-layout-container" class="flex flex-col lg:flex-row w-full gap-6">
+                <!-- Calendário da Escala -->
+                <div class="flex-grow table-container">
+                    <table class="w-full border-collapse text-center">
+                        <thead>
+                            <tr class="bg-slate-900 text-white uppercase text-xs sm:text-sm tracking-wider">
+                                <th class="p-3 w-12 rounded-tl-lg font-bold">Mês</th>
+                                <th class="p-3 font-bold">SEGUNDA</th>
+                                <th class="p-3 font-bold">TERÇA</th>
+                                <th class="p-3 font-bold">QUARTA</th>
+                                <th class="p-3 font-bold">QUINTA</th>
+                                <th class="p-3 font-bold">SEXTA</th>
+                                <th class="p-3 font-bold">SÁBADO</th>
+                                <th class="p-3 rounded-tr-lg font-bold">DOMINGO</th>
                             </tr>
                         </thead>
-                        <tbody id="summary-body">
-                            <!-- Linhas do resumo geradas pelo JavaScript -->
-                        </tbody>
+                        <tbody id="calendar-body" class="bg-white"></tbody>
                     </table>
                 </div>
-            </aside>
+                <!-- Resumo de Plantões -->
+                <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
+                    <div class="bg-slate-100 p-4 rounded-lg h-full">
+                        <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
+                        <table class="w-full mt-4 text-sm">
+                            <thead class="summary-table-header">
+                                <tr class="text-left">
+                                    <th class="pb-2 font-bold text-slate-600">Agente</th>
+                                    <th class="pb-2 font-bold text-slate-600 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summary-body"></tbody>
+                        </table>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- Conteúdo da Aba "Escalas Salvas" -->
+        <div id="past-scales-view" class="tab-content hidden">
+            <div id="past-scales-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Lista de escalas salvas será preenchida aqui -->
+            </div>
         </div>
     </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        let db, auth;
-        let unsubscribeFromSchedule; // To manage realtime listener
+        let db, auth, storage;
 
         const main = async () => {
-            // --- CONFIGURAÇÃO DO FIREBASE ---
             const firebaseConfig = {
                 apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
                 authDomain: "escala-26e73.firebaseapp.com",
@@ -202,23 +160,18 @@
                 messagingSenderId: "1084570993293",
                 appId: "1:1084570993293:web:cab3627f9527b55da198c4"
             };
-            // --- FIM DA CONFIGURAÇÃO ---
             
             const appId = 'escala-de-plantoes-v1';
             
-            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "COLE_SUA_API_KEY_AQUI") {
-                try {
-                    const app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-                    await signInAnonymously(auth);
-                } catch (error) {
-                    console.error("Firebase initialization failed:", error);
-                    alert("Erro na inicialização do Firebase. Verifique se a sua configuração (firebaseConfig) está correta no código.");
-                }
-            } else {
-                console.warn("Firebase não configurado. A aplicação funcionará em modo local, sem salvar na nuvem.");
-                db = null;
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                storage = getStorage(app);
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                alert("Erro na inicialização do Firebase. Verifique se a sua configuração está correta.");
             }
 
             const monthSelect = document.getElementById('month-select');
@@ -228,33 +181,30 @@
             const dateTitlePart = document.getElementById('date-title-part');
             const editableTitlePart = document.getElementById('editable-title-part');
             const printButton = document.getElementById('print-button');
-
+            const saveButton = document.getElementById('save-button');
+            const tabsNav = document.getElementById('tabs-nav');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const pastScalesList = document.getElementById('past-scales-list');
+            
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'LISBOA', 'MALCHER', 'THEODORO', 'PENNA', 'EDUARDO', 'ESCALA'];
+            const ALLOWED_NAMES = ['GABRIEL', 'GARCEZ', 'VIEIRA', 'LEANDRO', 'WASHINGTON', 'ESCALA'];
 
             printButton.addEventListener('click', () => window.print());
 
             const updateSummary = () => {
                 const agentCounts = {};
-                const selectFields = calendarBody.querySelectorAll('.agent-name-input');
-                selectFields.forEach(field => {
+                calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
                     const name = field.value;
-                    if (name && name !== 'ESCALA') {
-                        agentCounts[name] = (agentCounts[name] || 0) + 1;
-                    }
+                    if (name && name !== 'ESCALA') agentCounts[name] = (agentCounts[name] || 0) + 1;
                 });
                 summaryBody.innerHTML = '';
                 const sortedAgents = Object.keys(agentCounts).sort();
-
                 if (sortedAgents.length === 0) {
                      summaryBody.innerHTML = `<tr><td colspan="2" class="pt-3 text-slate-500 text-center">-</td></tr>`;
                 } else {
                     sortedAgents.forEach(name => {
                         const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td class="py-1.5 font-semibold text-slate-800">${name}</td>
-                            <td class="py-1.5 font-bold text-indigo-600 text-right">${agentCounts[name]}</td>
-                        `;
+                        row.innerHTML = `<td class="py-1.5 font-semibold text-slate-800">${name}</td><td class="py-1.5 font-bold text-indigo-600 text-right">${agentCounts[name]}</td>`;
                         summaryBody.appendChild(row);
                     });
                 }
@@ -266,7 +216,7 @@
                     selectElement.style.width = '100%';
                     return;
                 }
-                 const tempSpan = document.createElement('span');
+                const tempSpan = document.createElement('span');
                 const style = window.getComputedStyle(selectElement);
                 tempSpan.style.font = style.font;
                 tempSpan.style.visibility = 'hidden';
@@ -275,60 +225,107 @@
                 tempSpan.style.paddingRight = style.paddingRight;
                 tempSpan.textContent = selectElement.options[selectElement.selectedIndex].text;
                 document.body.appendChild(tempSpan);
-                const width = tempSpan.offsetWidth;
-                document.body.removeChild(tempSpan);
-                selectElement.style.width = `${width + 5}px`;
+                selectElement.style.width = `${tempSpan.offsetWidth + 5}px`;
             };
 
-            const saveSchedule = async () => {
-                if (!db) return;
+            const saveScheduleAsPdf = async () => {
+                if (!db || !storage) return;
+                saveButton.disabled = true;
+                saveButton.textContent = 'Gerando PDF...';
+
                 const year = parseInt(yearSelect.value);
                 const month = parseInt(monthSelect.value);
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
-                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                const filename = `escala_${docId}.pdf`;
+                const elementToPrint = document.getElementById('current-scale-view');
 
-                const dataToSave = {
-                    title: editableTitlePart.textContent,
-                    schedule: {}
-                };
+                try {
+                    const pdfBlob = await html2pdf().from(elementToPrint).set({
+                        margin: [10, 10, 10, 10],
+                        filename: filename,
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                    }).output('blob');
 
-                const selectFields = calendarBody.querySelectorAll('.agent-name-input');
-                selectFields.forEach(field => {
-                    const date = field.dataset.date;
-                    const index = parseInt(field.dataset.index);
-                    if (!dataToSave.schedule[date]) {
-                        dataToSave.schedule[date] = ['', ''];
-                    }
-                    dataToSave.schedule[date][index] = field.value;
-                });
-                
-                await setDoc(scheduleRef, dataToSave, { merge: true });
+                    saveButton.textContent = 'Enviando...';
+                    const storageRef = ref(storage, `schedules_pdf/${appId}/${filename}`);
+                    await uploadBytes(storageRef, pdfBlob);
+                    const downloadURL = await getDownloadURL(storageRef);
+
+                    const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                    const dataToSave = {
+                        title: editableTitlePart.textContent,
+                        pdfUrl: downloadURL,
+                        createdAt: new Date()
+                    };
+                    await setDoc(scheduleRef, dataToSave, { merge: true });
+
+                    saveButton.textContent = 'Salvo ✓';
+                } catch (error) {
+                    console.error("Error saving PDF schedule: ", error);
+                    saveButton.textContent = 'Erro ao Salvar';
+                    alert("Ocorreu um erro ao salvar a escala. Tente novamente.");
+                } finally {
+                    setTimeout(() => {
+                        saveButton.disabled = false;
+                        saveButton.textContent = 'Salvar Escala';
+                    }, 2000);
+                }
             };
             
-            const loadAndListenForScheduleChanges = (year, month) => {
+            const loadPreviousScales = async () => {
                 if (!db) return;
-                
-                if (unsubscribeFromSchedule) {
-                    unsubscribeFromSchedule();
-                }
-                const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
-                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                pastScalesList.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
+                const schedulesRef = collection(db, `schedules/${appId}/periods`);
+                try {
+                    const querySnapshot = await getDocs(schedulesRef);
+                    const scales = [];
+                    querySnapshot.forEach((doc) => scales.push({ id: doc.id, ...doc.data() }));
 
-                unsubscribeFromSchedule = onSnapshot(scheduleRef, (doc) => {
-                    const data = doc.exists() ? doc.data() : null;
-                    editableTitlePart.textContent = data?.title || 'ESCALA ORDINÁRIA';
+                    pastScalesList.innerHTML = '';
+                    if (scales.length === 0) {
+                        pastScalesList.innerHTML = '<p class="text-slate-500">Nenhuma escala salva encontrada.</p>';
+                        return;
+                    }
                     
-                    const scheduleData = data?.schedule || {};
-                    const allSelects = document.querySelectorAll('.agent-name-input');
-                    allSelects.forEach(select => {
-                        const date = select.dataset.date;
-                        const index = parseInt(select.dataset.index);
-                        select.value = scheduleData[date]?.[index] || '';
-                        adjustSelectWidth(select);
+                    scales.sort((a, b) => b.id.localeCompare(a.id));
+
+                    scales.forEach(scale => {
+                        if(!scale.pdfUrl) return; // Ignora escalas sem PDF
+                        const [year, month] = scale.id.split('-');
+                        const monthName = PT_BR_MONTHS[parseInt(month) - 1];
+                        const cardLink = document.createElement('a');
+                        cardLink.href = scale.pdfUrl;
+                        cardLink.target = '_blank';
+                        cardLink.rel = 'noopener noreferrer';
+                        cardLink.className = 'block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
+                        cardLink.innerHTML = `
+                            <h3 class="font-bold text-slate-800">${scale.title}</h3>
+                            <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
+                            <span class="flex items-center text-xs text-indigo-600 font-semibold mt-2">
+                                Baixar PDF 
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            </span>
+                        `;
+                        pastScalesList.appendChild(cardLink);
                     });
-                    updateSummary();
-                });
+                } catch (error) {
+                    console.error("Error fetching previous scales:", error);
+                    pastScalesList.innerHTML = '<p class="text-red-500">Erro ao carregar escalas.</p>';
+                }
             };
+            
+            tabsNav.addEventListener('click', (e) => {
+                if (e.target.matches('.tab-button')) {
+                    const tabId = e.target.dataset.tab;
+                    tabsNav.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    tabContents.forEach(content => {
+                        content.id === `${tabId}-view` ? content.classList.remove('hidden') : content.classList.add('hidden');
+                    });
+                    if (tabId === 'past-scales') loadPreviousScales();
+                }
+            });
 
             const generateCalendar = (year, month) => {
                 calendarBody.innerHTML = '';
@@ -343,24 +340,16 @@
                 while (weeks.length === 0 || loopEndDate >= currentDate) {
                     let week = Array(7).fill(null);
                     for (let i = 0; i < 7; i++) {
-                        if (currentDate >= startDate && currentDate <= endDate) {
-                            week[i] = new Date(currentDate);
-                        }
+                        if (currentDate >= startDate && currentDate <= endDate) week[i] = new Date(currentDate);
                         currentDate.setDate(currentDate.getDate() + 1);
                     }
                     if (week.some(d => d !== null)) weeks.push(week);
-                    if (currentDate > endDate && week.every(d => d === null)) break;
                 }
                 
                 let monthRowspans = {};
-                weeks.forEach(week => {
-                    week.forEach(day => {
-                        if (day) {
-                           const monthKey = day.getMonth();
-                           monthRowspans[monthKey] = (monthRowspans[monthKey] || 0) + 1;
-                        }
-                    });
-                });
+                weeks.forEach(week => week.forEach(day => {
+                    if (day) monthRowspans[day.getMonth()] = (monthRowspans[day.getMonth()] || 0) + 1;
+                }));
                  
                 let renderedMonths = [];
                 weeks.forEach(week => {
@@ -373,23 +362,19 @@
                         const colorClass = monthKey === startDate.getMonth() ? 'bg-indigo-300' : 'bg-blue-300';
                         
                         const monthCell = document.createElement('td');
-                        monthCell.classList.add('font-bold', 'text-sm', 'text-white', 'p-2', colorClass);
+                        monthCell.className = `font-bold text-sm text-white p-2 ${colorClass}`;
                         monthCell.style.writingMode = 'vertical-rl';
                         monthCell.style.textOrientation = 'mixed';
                         monthCell.style.transform = 'rotate(180deg)';
                         monthCell.textContent = monthName;
-                        
-                        const rowspan = Math.ceil(monthRowspans[monthKey] / 7);
-                        monthCell.setAttribute('rowspan', rowspan);
+                        monthCell.rowSpan = Math.ceil(monthRowspans[monthKey] / 7);
                         row.appendChild(monthCell);
                         renderedMonths.push(monthKey);
                     }
 
                     week.forEach((day, dayIndex) => {
                         const cell = document.createElement('td');
-                        cell.classList.add('border', 'border-slate-200', 'h-24', 'p-1', 'align-top');
-                        if (dayIndex >= 5) cell.classList.add('bg-slate-50');
-
+                        cell.className = `border border-slate-200 h-24 p-1 align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
                         if (day) {
                             const monthShort = day.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
                             const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
@@ -399,18 +384,13 @@
                             const container = cell.querySelector('.flex-col');
                             for (let i = 0; i < 2; i++) {
                                 const select = document.createElement('select');
-                                select.classList.add('agent-name-input');
+                                select.className = 'agent-name-input';
                                 select.dataset.date = dateString;
                                 select.dataset.index = i;
-                                let optionsHTML = '<option value=""></option>';
-                                ALLOWED_NAMES.forEach(name => {
-                                    optionsHTML += `<option value="${name}">${name}</option>`;
-                                });
-                                select.innerHTML = optionsHTML;
+                                select.innerHTML = `<option value=""></option>${ALLOWED_NAMES.map(n => `<option value="${n}">${n}</option>`).join('')}`;
                                 select.addEventListener('change', () => {
                                     updateSummary();
                                     adjustSelectWidth(select);
-                                    saveSchedule();
                                 });
                                 container.appendChild(select);
                             }
@@ -419,7 +399,7 @@
                     });
                     calendarBody.appendChild(row);
                 });
-                loadAndListenForScheduleChanges(year, month);
+                updateSummary();
             };
             
             const updateTitle = (year, month) => {
@@ -444,17 +424,11 @@
                 let currentMonth = today.getMonth();
 
                 PT_BR_MONTHS.forEach((monthName, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase();
-                    monthSelect.appendChild(option);
+                    monthSelect.add(new Option(monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase(), index));
                 });
 
                 for (let i = currentYear - 5; i <= currentYear + 5; i++) {
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = i;
-                    yearSelect.appendChild(option);
+                    yearSelect.add(new Option(i, i));
                 }
 
                 let initialMonth = currentMonth;
@@ -472,10 +446,10 @@
                 
                 handleDateChange();
             };
-
+            
+            saveButton.addEventListener('click', saveScheduleAsPdf);
             monthSelect.addEventListener('change', handleDateChange);
             yearSelect.addEventListener('change', handleDateChange);
-            editableTitlePart.addEventListener('blur', saveSchedule);
             initialize();
         };
 
