@@ -125,10 +125,6 @@
             </div>
             <div id="controls-header" class="flex items-center gap-4">
                  <div class="flex items-center gap-2">
-                    <select id="schedule-type-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
-                        <option value="ordinaria">Escala Ordinária</option>
-                        <option value="fimdesemana">Fim de Semana/Feriado</option>
-                    </select>
                     <select id="month-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                     <select id="year-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                  </div>
@@ -205,7 +201,6 @@
 
         const initializeAppLogic = () => {
             const appId = 'escala-de-plantoes-v1';
-            const scheduleTypeSelect = document.getElementById('schedule-type-select');
             const monthSelect = document.getElementById('month-select');
             const yearSelect = document.getElementById('year-select');
             const calendarBody = document.getElementById('calendar-body');
@@ -369,8 +364,7 @@
 
                 const year = parseInt(yearSelect.value);
                 const month = parseInt(monthSelect.value);
-                const scheduleType = scheduleTypeSelect.value;
-                const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
+                const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
                 
                 const scheduleData = {};
                 calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
@@ -404,17 +398,16 @@
                 }
             };
 
-            const loadScheduleData = async (year, month, scheduleType) => {
+            const loadScheduleData = async (year, month) => {
                 if (!db || !auth.currentUser) return;
-                const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
+                const docId = `${year}-${String(month + 1).padStart(2, '0')}`;
                 const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
                 
                 try {
                     const docSnap = await getDoc(scheduleRef);
                     const data = docSnap.exists() ? docSnap.data() : null;
                     
-                    const defaultTitle = scheduleType === 'ordinaria' ? 'ESCALA ORDINÁRIA' : 'ESCALA FIM DE SEMANA/FERIADO';
-                    editableTitlePart.textContent = data?.title || defaultTitle;
+                    editableTitlePart.textContent = data?.title || 'ESCALA ORDINÁRIA';
                     
                     const scheduleData = data?.schedule || {};
 
@@ -453,23 +446,18 @@
                     scales.sort((a, b) => b.id.localeCompare(a.id));
 
                     scales.forEach(scale => {
-                        const [year, month, type] = scale.id.split('-');
-                        if (!type) return; // Ignora documentos no formato antigo
-                        
+                        const [year, month] = scale.id.split('-');
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
-                        const scheduleTypeName = type === 'ordinaria' ? 'Ordinária' : 'Fim de Semana/Feriado';
-
+                        
                         const card = document.createElement('div');
                         card.className = 'block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
                         card.innerHTML = `
                             <h3 class="font-bold text-slate-800">${scale.title}</h3>
                             <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
-                            <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${type === 'ordinaria' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${scheduleTypeName}</p>
                         `;
                         card.addEventListener('click', () => {
                             yearSelect.value = year;
                             monthSelect.value = parseInt(month) - 1;
-                            scheduleTypeSelect.value = type;
                             handleDateChange();
                             tabsNav.querySelector('button[data-tab="current-scale"]').click();
                         });
@@ -493,7 +481,7 @@
                 }
             });
 
-            const generateCalendar = (year, month, scheduleType) => {
+            const generateCalendar = (year, month) => {
                 calendarBody.innerHTML = '';
                 const startDate = new Date(year, month, 16);
                 const endDate = new Date(year, month + 1, 15);
@@ -568,7 +556,7 @@
                 });
                 
                 if (auth && auth.currentUser) {
-                    loadScheduleData(year, month, scheduleType);
+                    loadScheduleData(year, month);
                 } else {
                     updateSummary();
                 }
@@ -587,8 +575,7 @@
             const handleDateChange = () => {
                 const year = parseInt(yearSelect.value);
                 const month = parseInt(monthSelect.value);
-                const scheduleType = scheduleTypeSelect.value;
-                generateCalendar(year, month, scheduleType);
+                generateCalendar(year, month);
                 updateTitle(year, month);
             };
 
@@ -624,7 +611,6 @@
             saveButton.addEventListener('click', saveScheduleData);
             monthSelect.addEventListener('change', handleDateChange);
             yearSelect.addEventListener('change', handleDateChange);
-            scheduleTypeSelect.addEventListener('change', handleDateChange);
             
             initialize(); 
         };
@@ -651,8 +637,7 @@
                         console.log("Authenticated successfully.");
                         const year = parseInt(document.getElementById('year-select').value);
                         const month = parseInt(document.getElementById('month-select').value);
-                        const scheduleType = document.getElementById('schedule-type-select').value;
-                        window.loadScheduleDataForCurrentView(year, month, scheduleType);
+                        window.loadScheduleDataForCurrentView(year, month);
                     } else {
                         signInAnonymously(auth).catch(err => {
                              console.error("Anonymous sign-in failed:", err);
