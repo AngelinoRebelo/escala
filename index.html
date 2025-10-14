@@ -54,6 +54,9 @@
         #login-modal {
             background-color: rgba(0, 0, 0, 0.5);
         }
+        .static-agent-name {
+            display: none;
+        }
         @media print {
             body { 
                 background-color: #fff !important; 
@@ -570,6 +573,8 @@
                                 });
                                 container.appendChild(select);
                             }
+                        } else {
+                            cell.innerHTML = '&nbsp;';
                         }
                         row.appendChild(cell);
                     });
@@ -684,5 +689,4 @@
     </script>
 </body>
 </html>
-
 
