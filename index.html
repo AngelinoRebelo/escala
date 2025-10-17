@@ -46,10 +46,22 @@
             box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
             border-color: #6366f1;
         }
+        .tab-button {
+            padding: 0.5rem 0.25rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            font-size: 0.8rem;
+            width: 100%;
+            text-align: center;
+        }
+        .tab-button:hover {
+            background-color: #e2e8f0; /* slate-200 */
+        }
         .tab-button.active {
-            border-bottom-color: #6366f1;
-            color: #4338ca;
-            font-weight: 700;
+            background-color: #4f46e5; /* indigo-600 */
+            color: #fff;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
         }
         #login-modal {
             background-color: rgba(0, 0, 0, 0.5);
@@ -65,7 +77,7 @@
             }
             #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button { display: none !important; }
             main { max-width: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
-            #past-scales-view { display: none !important; }
+            .tab-content { display: none !important; }
             #current-scale-view { display: block !important; }
             .title-container { justify-content: center !important; margin-bottom: 1rem !important; }
             table { border-collapse: collapse !important; }
@@ -167,9 +179,11 @@
         </div>
         
         <!-- Navegação das Abas -->
-        <nav id="tabs-nav" class="border-b border-slate-200 mb-6">
-            <button data-tab="current-scale" class="tab-button active py-2 px-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700">Escala Atual</button>
-            <button data-tab="past-scales" class="tab-button py-2 px-4 border-b-2 border-transparent text-slate-500 hover:text-slate-700">Escalas Salvas</button>
+        <nav id="tabs-nav" class="flex space-x-2 p-1 bg-slate-100 rounded-lg mb-6">
+            <button data-tab="current-scale" class="tab-button active">Escala Atual</button>
+            <button data-tab="past-scales-mariana" class="tab-button">Salvas: Dna. Mariana</button>
+            <button data-tab="past-scales-nelson" class="tab-button">Salvas: Sr. Nelson</button>
+            <button data-tab="past-scales-fds" class="tab-button">Salvas: Fim de Semana</button>
         </nav>
 
         <!-- Conteúdo da Aba "Escala Atual" -->
@@ -211,11 +225,15 @@
             </div>
         </div>
 
-        <!-- Conteúdo da Aba "Escalas Salvas" -->
-        <div id="past-scales-view" class="tab-content hidden">
-            <div id="past-scales-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <!-- Lista de escalas salvas será preenchida aqui -->
-            </div>
+        <!-- Conteúdo das Abas Salvas -->
+        <div id="past-scales-mariana-view" class="tab-content hidden">
+            <div id="past-scales-list-mariana" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+        <div id="past-scales-nelson-view" class="tab-content hidden">
+            <div id="past-scales-list-nelson" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+        <div id="past-scales-fds-view" class="tab-content hidden">
+            <div id="past-scales-list-fds" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         </div>
     </main>
 
@@ -245,7 +263,10 @@
             const loginError = document.getElementById('login-error');
             const tabsNav = document.getElementById('tabs-nav');
             const tabContents = document.querySelectorAll('.tab-content');
-            const pastScalesList = document.getElementById('past-scales-list');
+            const pastScalesListMariana = document.getElementById('past-scales-list-mariana');
+            const pastScalesListNelson = document.getElementById('past-scales-list-nelson');
+            const pastScalesListFds = document.getElementById('past-scales-list-fds');
+
 
             let sessionTimeoutId = null;
             const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
@@ -484,18 +505,34 @@
             
             window.loadScheduleDataForCurrentView = loadScheduleData;
 
-            const loadPreviousScales = async () => {
+            const loadPreviousScales = async (targetType) => {
                 if (!db || !auth.currentUser) return;
-                pastScalesList.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
+                
+                let listEl;
+                if (targetType === 'ordinaria') {
+                    listEl = pastScalesListMariana;
+                } else if (targetType === 'ordinaria_nelson') {
+                    listEl = pastScalesListNelson;
+                } else {
+                    listEl = pastScalesListFds;
+                }
+
+                listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
+                
                 const schedulesRef = collection(db, `schedules/${appId}/periods`);
                 try {
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
-                    querySnapshot.forEach((doc) => scales.push({ id: doc.id, ...doc.data() }));
+                    querySnapshot.forEach((doc) => {
+                        const [year, month, type] = doc.id.split('-');
+                        if (type === targetType) {
+                            scales.push({ id: doc.id, ...doc.data() });
+                        }
+                    });
 
-                    pastScalesList.innerHTML = '';
+                    listEl.innerHTML = '';
                     if (scales.length === 0) {
-                        pastScalesList.innerHTML = '<p class="text-slate-500">Nenhuma escala salva encontrada.</p>';
+                        listEl.innerHTML = '<p class="text-slate-500">Nenhuma escala salva encontrada.</p>';
                         return;
                     }
                     
@@ -503,8 +540,6 @@
 
                     scales.forEach(scale => {
                         const [year, month, type] = scale.id.split('-');
-                        if (!type) return; 
-                        
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
                         
                         let scheduleTypeName;
@@ -515,7 +550,7 @@
                         } else if (type === 'ordinaria_nelson') {
                             scheduleTypeName = 'Ordinária - Sr. Nelson';
                             typeColorClass = 'bg-purple-100 text-purple-800';
-                        } else { // fimdesemana
+                        } else {
                             scheduleTypeName = 'Fim de Semana/Feriado';
                             typeColorClass = 'bg-green-100 text-green-800';
                         }
@@ -534,11 +569,11 @@
                             handleDateChange();
                             tabsNav.querySelector('button[data-tab="current-scale"]').click();
                         });
-                        pastScalesList.appendChild(card);
+                        listEl.appendChild(card);
                     });
                 } catch (error) {
                     console.error("Error fetching previous scales:", error);
-                    pastScalesList.innerHTML = '<p class="text-red-500">Erro ao carregar escalas.</p>';
+                    listEl.innerHTML = '<p class="text-red-500">Erro ao carregar escalas.</p>';
                 }
             };
             
@@ -550,7 +585,13 @@
                     tabContents.forEach(content => {
                         content.id === `${tabId}-view` ? content.classList.remove('hidden') : content.classList.add('hidden');
                     });
-                    if (tabId === 'past-scales') loadPreviousScales();
+                    if (tabId === 'past-scales-mariana') {
+                        loadPreviousScales('ordinaria');
+                    } else if (tabId === 'past-scales-nelson') {
+                        loadPreviousScales('ordinaria_nelson');
+                    } else if (tabId === 'past-scales-fds') {
+                        loadPreviousScales('fimdesemana');
+                    }
                 }
             });
 
@@ -744,4 +785,5 @@
     </script>
 </body>
 </html>
+
 
