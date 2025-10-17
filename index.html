@@ -71,7 +71,7 @@
                 border: 1px solid #000 !important;
                 height: 6rem !important;
             }
-            .bg-slate-900, .bg-indigo-300, .bg-blue-300, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-indigo-200 { 
+            .bg-slate-900, .bg-indigo-500, .bg-blue-500, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-indigo-200, .bg-blue-200 { 
                 background-color: transparent !important; 
                 color: #000 !important; 
             }
@@ -543,7 +543,7 @@
                     if (firstDayOfWeek && !renderedMonths.includes(firstDayOfWeek.getMonth())) {
                         const monthKey = firstDayOfWeek.getMonth();
                         const monthName = new Date(firstDayOfWeek.getFullYear(), monthKey).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
-                        const colorClass = monthKey === startDate.getMonth() ? 'bg-indigo-300' : 'bg-blue-300';
+                        const colorClass = monthKey === startDate.getMonth() ? 'bg-indigo-500' : 'bg-blue-500';
                         
                         const monthCell = document.createElement('td');
                         monthCell.className = `font-bold text-sm text-white p-2 ${colorClass}`;
@@ -562,8 +562,12 @@
                         if (day) {
                             const monthShort = day.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
                             const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                            
+                            const isFirstMonth = day.getMonth() === startDate.getMonth();
+                            const dateColorClass = isFirstMonth ? 'bg-indigo-500 text-white' : 'bg-blue-500 text-white';
+
                             cell.innerHTML = `
-                                <div class="flex justify-center mb-1"><span class="date-label inline-block bg-indigo-200 text-slate-900 text-base font-black px-3 py-1 rounded-full shadow-sm">${day.getDate()}/${monthShort}</span></div>
+                                <div class="mb-1"><span class="date-label block w-full ${dateColorClass} text-base font-black py-1 rounded-md shadow-sm">${day.getDate()}/${monthShort}</span></div>
                                 <div class="flex flex-col justify-start items-center space-y-1 px-2"></div>`;
                             const container = cell.querySelector('.flex-col');
                             for (let i = 0; i < 2; i++) {
@@ -695,6 +699,4 @@
     </script>
 </body>
 </html>
-
-
 
