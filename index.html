@@ -148,7 +148,8 @@
             <div id="controls-header" class="flex items-center gap-4">
                  <div class="flex items-center gap-2">
                     <select id="schedule-type-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
-                        <option value="ordinaria">Escala Ordinária</option>
+                        <option value="ordinaria">Escala Ordinária - Dna. Mariana</option>
+                        <option value="ordinaria_nelson">Escala Ordinária - Sr. Nelson</option>
                         <option value="fimdesemana">Fim de Semana/Feriado</option>
                     </select>
                     <select id="month-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
@@ -254,6 +255,20 @@
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const ALLOWED_NAMES = ['EDUARDO', 'ESCALA', 'GABRIEL', 'GARCEZ', 'LEANDRO', 'LISBOA', 'MALCHER', 'PENNA', 'THEODORO', 'VIEIRA', 'WASHINGTON'];
 
+            const prefilledNelsonData = {
+                "2025-10-16": ["PENNA", "THEODORO"], "2025-10-17": ["LISBOA", "MALCHER"], "2025-10-18": ["LISBOA", "EDUARDO"],
+                "2025-10-19": ["PENNA", "EDUARDO"], "2025-10-20": ["MALCHER", "THEODORO"], "2025-10-21": ["LISBOA", "MALCHER"],
+                "2025-10-22": ["EDUARDO", "THEODORO"], "2025-10-23": ["LISBOA", "PENNA"], "2025-10-24": ["PENNA", "EDUARDO"],
+                "2025-10-25": ["MALCHER", "THEODORO"], "2025-10-26": ["LISBOA", "THEODORO"], "2025-10-27": ["EDUARDO", "PENNA"],
+                "2025-10-28": ["MALCHER", "PENNA"], "2025-10-29": ["LISBOA", "MALCHER"], "2025-10-30": ["EDUARDO", "THEODORO"],
+                "2025-10-31": ["LISBOA", "PENNA"], "2025-11-01": ["LISBOA", "PENNA"], "2025-11-02": ["MALCHER", "EDUARDO"],
+                "2025-11-03": ["EDUARDO", "THEODORO"], "2025-11-04": ["LISBOA", "PENNA"], "2025-11-05": ["MALCHER", "THEODORO"],
+                "2025-11-06": ["LISBOA", "MALCHER"], "2025-11-07": ["EDUARDO", "THEODORO"], "2025-11-08": ["PENNA", "THEODORO"],
+                "2025-11-09": ["LISBOA", "MALCHER"], "2025-11-10": ["MALCHER", "EDUARDO"], "2025-11-11": ["EDUARDO", "THEODORO"],
+                "2025-11-12": ["LISBOA", "PENNA"], "2025-11-13": ["PENNA", "THEODORO"], "2025-11-14": ["LISBOA", "MALCHER"],
+                "2025-11-15": ["PENNA", "EDUARDO"]
+            };
+
             const enableEditing = () => {
                 editableTitlePart.contentEditable = "true";
                 editableTitlePart.classList.add('hover:bg-slate-200', 'focus:ring-2', 'focus:ring-indigo-400');
@@ -336,7 +351,6 @@
                 };
                 window.addEventListener('afterprint', afterPrintHandler);
                 
-                // This ensures the DOM has been updated before we trigger the print
                 requestAnimationFrame(() => {
                     window.print();
                 });
@@ -439,10 +453,20 @@
                     const docSnap = await getDoc(scheduleRef);
                     const data = docSnap.exists() ? docSnap.data() : null;
                     
-                    const defaultTitle = scheduleType === 'ordinaria' ? 'ESCALA ORDINÁRIA' : 'ESCALA FIM DE SEMANA/FERIADO';
-                    editableTitlePart.textContent = data?.title || defaultTitle;
-                    
-                    const scheduleData = data?.schedule || {};
+                    let scheduleData;
+
+                    if (!data && scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9) {
+                        scheduleData = prefilledNelsonData;
+                        editableTitlePart.textContent = 'ESCALA ORDINÁRIA - SR. NELSON';
+                    } else {
+                        const defaultTitle = {
+                            'ordinaria': 'ESCALA ORDINÁRIA - DNA. MARIANA',
+                            'ordinaria_nelson': 'ESCALA ORDINÁRIA - SR. NELSON',
+                            'fimdesemana': 'ESCALA FIM DE SEMANA/FERIADO'
+                        }[scheduleType] || 'ESCALA';
+                        editableTitlePart.textContent = data?.title || defaultTitle;
+                        scheduleData = data?.schedule || {};
+                    }
 
                     document.querySelectorAll('.agent-name-input').forEach(select => {
                         const date = select.dataset.date;
@@ -458,7 +482,6 @@
                 }
             };
             
-            // Expose the function to the global scope to be called from the auth listener
             window.loadScheduleDataForCurrentView = loadScheduleData;
 
             const loadPreviousScales = async () => {
@@ -480,17 +503,29 @@
 
                     scales.forEach(scale => {
                         const [year, month, type] = scale.id.split('-');
-                        if (!type) return; // Ignora documentos no formato antigo
+                        if (!type) return; 
                         
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
-                        const scheduleTypeName = type === 'ordinaria' ? 'Ordinária' : 'Fim de Semana/Feriado';
+                        
+                        let scheduleTypeName;
+                        let typeColorClass;
+                        if (type === 'ordinaria') {
+                            scheduleTypeName = 'Ordinária - Dna. Mariana';
+                            typeColorClass = 'bg-blue-100 text-blue-800';
+                        } else if (type === 'ordinaria_nelson') {
+                            scheduleTypeName = 'Ordinária - Sr. Nelson';
+                            typeColorClass = 'bg-purple-100 text-purple-800';
+                        } else { // fimdesemana
+                            scheduleTypeName = 'Fim de Semana/Feriado';
+                            typeColorClass = 'bg-green-100 text-green-800';
+                        }
 
                         const card = document.createElement('div');
                         card.className = 'block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
                         card.innerHTML = `
                             <h3 class="font-bold text-slate-800">${scale.title}</h3>
                             <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
-                            <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${type === 'ordinaria' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${scheduleTypeName}</p>
+                            <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${typeColorClass}">${scheduleTypeName}</p>
                         `;
                         card.addEventListener('click', () => {
                             yearSelect.value = year;
@@ -625,6 +660,8 @@
                 
                 if (scheduleType === 'ordinaria') {
                     locationPart.textContent = ' - DNA. MARIANA';
+                } else if (scheduleType === 'ordinaria_nelson') {
+                    locationPart.textContent = ' - SR. NELSON';
                 } else {
                     locationPart.textContent = '';
                 }
