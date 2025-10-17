@@ -83,9 +83,14 @@
             .bg-slate-50 { background-color: #f8fafc !important; }
             .bg-slate-100 { background-color: #f1f5f9 !important; }
             .bg-slate-200 { background-color: #e2e8f0 !important; }
-            .date-label.bg-indigo-500 { background-color: #6366f1 !important; color: #fff !important; }
-            .date-label.bg-blue-500 { background-color: #3b82f6 !important; color: #fff !important; }
+            .date-label {
+                color: #fff !important;
+            }
+            .date-label.bg-indigo-500 { background-color: #6366f1 !important; }
+            .date-label.bg-blue-500 { background-color: #3b82f6 !important; }
             .text-white { color: #fff !important; }
+            .text-slate-900 { color: #0f172a !important; }
+
 
             th, td { color: #000 !important; }
             .summary-table-header { border-bottom: 1px solid #ccc !important; }
@@ -567,7 +572,7 @@
                             const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
                             
                             const isFirstMonth = day.getMonth() === startDate.getMonth();
-                            const dateColorClass = isFirstMonth ? 'bg-indigo-500 text-slate-900' : 'bg-blue-500 text-slate-900';
+                            const dateColorClass = isFirstMonth ? 'bg-indigo-500 text-white' : 'bg-blue-500 text-white';
 
                             cell.innerHTML = `
                                 <div class="mb-1"><span class="date-label block w-full ${dateColorClass} text-base font-black py-1 rounded-md shadow-sm">${day.getDate()}/${monthShort}</span></div>
