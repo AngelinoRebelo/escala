@@ -291,6 +291,10 @@
         let appId;
         let userId; // Variável global no módulo para o userId
         let isAppInitialized = false; // Flag para garantir inicialização única
+        
+        // *** Mover calendarBody para o escopo global do módulo ***
+        // Para que o loadScheduleData e printButton possam encontrá-lo
+        let calendarBody; 
 
         const initializeAppLogic = () => {
             if (isAppInitialized) return; // Prevenir re-inicialização
@@ -303,7 +307,10 @@
             const scheduleTypeSelect = document.getElementById('schedule-type-select');
             const monthSelect = document.getElementById('month-select');
             const yearSelect = document.getElementById('year-select');
-            const calendarBody = document.getElementById('calendar-body');
+            
+            // *** Atribuir à variável global do módulo ***
+            calendarBody = document.getElementById('calendar-body'); 
+            
             const summaryBody = document.getElementById('summary-body');
             const dateTitlePart = document.getElementById('date-title-part');
             const editableTitlePart = document.getElementById('editable-title-part');
@@ -436,8 +443,11 @@
 
             printButton.addEventListener('click', () => {
                 const staticNames = [];
-                // Primeiro, criar todos os divs estáticos
-                document.querySelectorAll('.agent-name-input').forEach(select => {
+                // *** CORREÇÃO: Usar o seletor específico `calendarBody` ***
+                // Este é o mesmo seletor que o `updateSummary` usa, garantindo que leia os mesmos dados.
+                if (!calendarBody) return; // Proteção
+                
+                calendarBody.querySelectorAll('.agent-name-input').forEach(select => {
                     if (select.value) {
                         const nameDiv = document.createElement('div');
                         nameDiv.className = 'static-agent-name';
@@ -464,10 +474,14 @@
 
             const updateSummary = () => {
                 const agentCounts = {};
+                // *** Usar o seletor específico `calendarBody` ***
+                if (!calendarBody) return; // Proteção
+
                 calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
                     const name = field.value;
                     if (name && name !== 'ESCALA') agentCounts[name] = (agentCounts[name] || 0) + 1;
                 });
+                
                 summaryBody.innerHTML = '';
                 const sortedAgents = Object.keys(agentCounts).sort();
                 if (sortedAgents.length === 0) {
@@ -530,6 +544,9 @@
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
                 
                 const scheduleData = {};
+                // *** Usar o seletor específico `calendarBody` ***
+                if (!calendarBody) return; // Proteção
+                
                 calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
                     const date = field.dataset.date;
                     const index = parseInt(field.dataset.index);
@@ -567,6 +584,12 @@
                     console.error("Load failed: DB not initialized or user not authenticated.");
                     return;
                 }
+                // *** Proteção: Garantir que o calendarBody exista antes de carregar ***
+                if (!calendarBody) {
+                    console.error("Load failed: calendarBody is not ready.");
+                    return;
+                }
+                
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
                 // Usar o caminho original do Firebase (schedules)
                 const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
@@ -592,8 +615,9 @@
                         scheduleData = data?.schedule || {};
                     }
 
-                    // *** CORREÇÃO: Aplicar dados aos selects ANTES de atualizar o resumo ***
-                    document.querySelectorAll('.agent-name-input').forEach(select => {
+                    // *** CORREÇÃO: Usar o seletor específico `calendarBody` ***
+                    // Este é o seletor que garante que estamos a preencher os inputs corretos.
+                    calendarBody.querySelectorAll('.agent-name-input').forEach(select => {
                         const date = select.dataset.date;
                         const index = parseInt(select.dataset.index);
                         const agentName = scheduleData[date]?.[index] || '';
@@ -734,7 +758,10 @@
             });
 
             const generateCalendar = (year, month, scheduleType) => {
-                calendarBody.innerHTML = '';
+                // *** Garantir que o calendarBody exista ***
+                if (!calendarBody) return; 
+                calendarBody.innerHTML = ''; // Limpar
+                
                 const startDate = new Date(year, month, 16);
                 const endDate = new Date(year, month + 1, 15);
                 
