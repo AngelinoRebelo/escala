@@ -163,6 +163,7 @@
                         <option value="ordinaria">Escala Ordinária - Dna. Mariana</option>
                         <option value="ordinaria_nelson">Escala Ordinária - Sr. Nelson</option>
                         <option value="fimdesemana">Fim de Semana/Feriado</option>
+                        <option value="extraordinaria_viagem">Escala Extraordinária - Viagem</option>
                     </select>
                     <select id="month-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                     <select id="year-select" class="p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
@@ -181,9 +182,10 @@
         <!-- Navegação das Abas -->
         <nav id="tabs-nav" class="flex space-x-2 p-1 bg-slate-100 rounded-lg mb-6">
             <button data-tab="current-scale" class="tab-button active">Escala Atual</button>
-            <button data-tab="past-scales-mariana" class="tab-button">Salvas: Dna. Mariana</button>
-            <button data-tab="past-scales-nelson" class="tab-button">Salvas: Sr. Nelson</button>
-            <button data-tab="past-scales-fds" class="tab-button">Salvas: Fim de Semana</button>
+            <button data-tab="past-scales-mariana" class="tab-button">Escala: Dna. Mariana</button>
+            <button data-tab="past-scales-nelson" class="tab-button">Escala: Sr. Nelson</button>
+            <button data-tab="past-scales-fds" class="tab-button">Escala: Fim de Semana</button>
+            <button data-tab="past-scales-viagem" class="tab-button">Escala: Viagem</button>
         </nav>
 
         <!-- Conteúdo da Aba "Escala Atual" -->
@@ -235,6 +237,11 @@
         <div id="past-scales-fds-view" class="tab-content hidden">
             <div id="past-scales-list-fds" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         </div>
+
+        <!-- Conteúdo da Aba Salvas Viagem -->
+        <div id="past-scales-viagem-view" class="tab-content hidden">
+            <div id="past-scales-list-viagem" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
     </main>
 
     <script type="module">
@@ -266,6 +273,7 @@
             const pastScalesListMariana = document.getElementById('past-scales-list-mariana');
             const pastScalesListNelson = document.getElementById('past-scales-list-nelson');
             const pastScalesListFds = document.getElementById('past-scales-list-fds');
+            const pastScalesListViagem = document.getElementById('past-scales-list-viagem');
 
 
             let sessionTimeoutId = null;
@@ -483,7 +491,8 @@
                         const defaultTitle = {
                             'ordinaria': 'ESCALA ORDINÁRIA - DNA. MARIANA',
                             'ordinaria_nelson': 'ESCALA ORDINÁRIA - SR. NELSON',
-                            'fimdesemana': 'ESCALA FIM DE SEMANA/FERIADO'
+                            'fimdesemana': 'ESCALA FIM DE SEMANA/FERIADO',
+                            'extraordinaria_viagem': 'ESCALA EXTRAORDINÁRIA - VIAGEM'
                         }[scheduleType] || 'ESCALA';
                         editableTitlePart.textContent = data?.title || defaultTitle;
                         scheduleData = data?.schedule || {};
@@ -513,8 +522,10 @@
                     listEl = pastScalesListMariana;
                 } else if (targetType === 'ordinaria_nelson') {
                     listEl = pastScalesListNelson;
-                } else {
+                } else if (targetType === 'fimdesemana') {
                     listEl = pastScalesListFds;
+                } else if (targetType === 'extraordinaria_viagem') {
+                    listEl = pastScalesListViagem;
                 }
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
@@ -550,9 +561,12 @@
                         } else if (type === 'ordinaria_nelson') {
                             scheduleTypeName = 'Ordinária - Sr. Nelson';
                             typeColorClass = 'bg-purple-100 text-purple-800';
-                        } else {
+                        } else if (type === 'fimdesemana') {
                             scheduleTypeName = 'Fim de Semana/Feriado';
                             typeColorClass = 'bg-green-100 text-green-800';
+                        } else if (type === 'extraordinaria_viagem') {
+                            scheduleTypeName = 'Extraordinária - Viagem';
+                            typeColorClass = 'bg-yellow-100 text-yellow-800';
                         }
 
                         const card = document.createElement('div');
@@ -591,6 +605,8 @@
                         loadPreviousScales('ordinaria_nelson');
                     } else if (tabId === 'past-scales-fds') {
                         loadPreviousScales('fimdesemana');
+                    } else if (tabId === 'past-scales-viagem') {
+                        loadPreviousScales('extraordinaria_viagem');
                     }
                 }
             });
@@ -703,6 +719,8 @@
                     locationPart.textContent = ' - DNA. MARIANA';
                 } else if (scheduleType === 'ordinaria_nelson') {
                     locationPart.textContent = ' - SR. NELSON';
+                } else if (scheduleType === 'extraordinaria_viagem') {
+                    locationPart.textContent = ' - VIAGEM';
                 } else {
                     locationPart.textContent = '';
                 }
@@ -757,6 +775,13 @@
                 appId: "1:1084570993293:web:cab3627f9527b55da198c4"
             };
 
+//                apiKey: "YOUR_API_KEY",
+//                authDomain: "YOUR_AUTH_DOMAIN",
+//                projectId: "YOUR_PROJECT_ID",
+//                storageBucket: "YOUR_STORAGE_BUCKET",
+//                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+//                appId: "YOUR_APP_ID"
+
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -785,5 +810,6 @@
     </script>
 </body>
 </html>
+
 
 
