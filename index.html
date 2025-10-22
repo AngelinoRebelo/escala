@@ -69,6 +69,8 @@
         .static-agent-name {
             display: none;
         }
+        
+        /* --- ESTILOS DE IMPRESSÃO --- */
         @media print {
             /* --- Configurações Gerais de Impressão --- */
             body { 
@@ -102,21 +104,31 @@
                 margin-top: 1rem !important; 
                 margin-left: 0 !important; 
                 flex-shrink: 0 !important;
+                page-break-inside: avoid !important; /* Evitar quebra de página */
             }
 
             /* --- Estilos da Tabela (Mais Compacta) --- */
-            table { border-collapse: collapse !important; width: 100% !important; }
+            table { 
+                border-collapse: collapse !important; 
+                width: 100% !important; 
+                table-layout: fixed; /* Ajuda a controlar larguras */
+            }
             td, th {
                 border: 1px solid #94a3b8 !important; /* slate-400 */
-                height: 3.5rem !important; /* Altura da célula reduzida */
-                padding: 2px !important;
-                font-size: 0.8rem !important;
+                height: 3.2rem !important; /* Altura da célula reduzida */
+                padding: 1px !important;
+                font-size: 0.75rem !important;
+                word-wrap: break-word; /* Quebrar nomes se necessário */
             }
-            th { font-size: 0.7rem !important; padding: 4px 2px !important; }
+            th { 
+                font-size: 0.7rem !important; 
+                padding: 3px 1px !important; 
+            }
             
             /* --- Rótulos de Data (Mais Compactos) --- */
             .date-label {
-                font-size: 0.9rem !important; /* Tamanho da data reduzido */
+                font-size: 0.8rem !important; /* Tamanho da data reduzido */
+                font-weight: 700 !important;
                 padding: 2px 0 !important;
                 margin-bottom: 2px !important;
                 color: #fff !important;
@@ -127,7 +139,7 @@
              .static-agent-name { 
                 display: block !important;
                 font-weight: 700 !important;
-                font-size: 0.75rem !important; /* Fonte do nome reduzida */
+                font-size: 0.7rem !important; /* Fonte do nome bem reduzida */
                 text-align: center !important;
                 padding: 1px !important;
                 color: #000 !important; /* Garantir que o texto seja preto */
@@ -146,11 +158,9 @@
 
             /* --- Tabela de Resumo --- */
             .summary-table-header { border-bottom: 1px solid #ccc !important; }
+            .summary-container table { table-layout: auto; } /* Deixar resumo auto */
         }
         
-        /* Remover regras de orientação específicas, pois agora é sempre coluna */
-         /* @media print and (orientation: landscape) { ... } */
-         /* @media print and (orientation: portrait) { ... } */
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -316,8 +326,6 @@
 
             let sessionTimeoutId = null;
             const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
-            // O LOGIN_USER e LOGIN_PASS locais não são mais a fonte da verdade.
-            // O login real do Firebase é que manda.
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const ALLOWED_NAMES = ['EDUARDO', 'ESCALA', 'GABRIEL', 'GARCEZ', 'LEANDRO', 'LISBOA', 'MALCHER', 'PENNA', 'THEODORO', 'VIEIRA', 'WASHINGTON'];
@@ -428,6 +436,7 @@
 
             printButton.addEventListener('click', () => {
                 const staticNames = [];
+                // Primeiro, criar todos os divs estáticos
                 document.querySelectorAll('.agent-name-input').forEach(select => {
                     if (select.value) {
                         const nameDiv = document.createElement('div');
@@ -438,15 +447,19 @@
                     }
                 });
 
+                // Handler para limpar os divs depois da impressão
                 const afterPrintHandler = () => {
                     staticNames.forEach(el => el.remove());
                     window.removeEventListener('afterprint', afterPrintHandler);
                 };
                 window.addEventListener('afterprint', afterPrintHandler);
                 
-                requestAnimationFrame(() => {
+                // *** CORREÇÃO: Usar um setTimeout para dar tempo ao DOM de renderizar ***
+                // Dar 100ms para o navegador processar os novos divs .static-agent-name
+                // antes de chamar a janela de impressão.
+                setTimeout(() => {
                     window.print();
-                });
+                }, 100); 
             });
 
             const updateSummary = () => {
@@ -589,7 +602,8 @@
                         if (ALLOWED_NAMES.includes(agentName)) {
                              select.value = agentName;
                         } else {
-                             select.value = ''; // Limpar se o nome não for válido (ex: "ESCALA" antigo)
+                             // Limpar se o nome não for válido (ex: "ESCALA" antigo ou vazio)
+                             select.value = '';
                         }
                        
                         adjustSelectWidth(select);
@@ -802,6 +816,8 @@
                 if (auth && auth.currentUser) {
                     loadScheduleData(year, month, scheduleType);
                 } else {
+                    // Se o auth não estiver pronto, o loadScheduleData será chamado pelo onAuthStateChanged
+                    // Mas podemos preencher um resumo vazio por enquanto.
                     updateSummary();
                 }
 
@@ -870,9 +886,9 @@
             };
             
             saveButton.addEventListener('click', saveScheduleData);
-            monthSelect.addEventListener('click', handleDateChange); // Mudar para 'click' pode ajudar em alguns browsers
-            yearSelect.addEventListener('click', handleDateChange); // Mudar para 'click'
-            scheduleTypeSelect.addEventListener('click', handleDateChange); // Mudar para 'click'
+            monthSelect.addEventListener('change', handleDateChange);
+            yearSelect.addEventListener('change', handleDateChange);
+            scheduleTypeSelect.addEventListener('change', handleDateChange);
             
             // CORREÇÃO: Re-adicionar a inicialização para carregar o calendário
             initialize(); 
@@ -931,5 +947,4 @@
     </script>
 </body>
 </html>
-
 
