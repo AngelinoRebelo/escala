@@ -247,12 +247,18 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth;
-        let appId; // Tornar o appId acessível no módulo
+        let appId;
+        let userId; // Variável global no módulo para o userId
+        let isAppInitialized = false; // Flag para garantir inicialização única
 
         const initializeAppLogic = () => {
+            if (isAppInitialized) return; // Prevenir re-inicialização
+            isAppInitialized = true;
+            console.log("Inicializando a lógica do app com userId:", userId);
+
             appId = typeof __app_id !== 'undefined' ? __app_id : 'escala-de-plantoes-v1'; // Usar appId global ou fallback
             const scheduleTypeSelect = document.getElementById('schedule-type-select');
             const monthSelect = document.getElementById('month-select');
@@ -433,7 +439,7 @@
             };
 
             const saveScheduleData = async () => {
-                if (!db || !auth.currentUser) {
+                if (!db || !auth.currentUser || !userId) {
                     console.error("Save failed: DB not initialized or user not authenticated.");
                     return;
                 }
@@ -462,7 +468,8 @@
                 };
 
                 try {
-                    const scheduleRef = doc(db, `artifacts/${appId}/public/data/periods`, docId); // Caminho correto do Firestore
+                    // CORREÇÃO: Usar o caminho privado do usuário
+                    const scheduleRef = doc(db, `artifacts/${appId}/users/${userId}/periods`, docId); 
                     await setDoc(scheduleRef, dataToSave);
                     saveButton.textContent = 'Salvo ✓';
                 } catch (error) {
@@ -478,12 +485,13 @@
             };
 
             const loadScheduleData = async (year, month, scheduleType) => {
-                if (!db || !auth.currentUser) {
+                if (!db || !auth.currentUser || !userId) {
                     console.error("Load failed: DB not initialized or user not authenticated.");
                     return;
                 }
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
-                const scheduleRef = doc(db, `artifacts/${appId}/public/data/periods`, docId); // Caminho correto do Firestore
+                // CORREÇÃO: Usar o caminho privado do usuário
+                const scheduleRef = doc(db, `artifacts/${appId}/users/${userId}/periods`, docId); 
                 
                 try {
                     const docSnap = await getDoc(scheduleRef);
@@ -522,7 +530,7 @@
             window.loadScheduleDataForCurrentView = loadScheduleData;
 
             const loadPreviousScales = async (targetType) => {
-                if (!db || !auth.currentUser) {
+                if (!db || !auth.currentUser || !userId) {
                     console.error("Load previous scales failed: DB not initialized or user not authenticated.");
                     return;
                 }
@@ -540,12 +548,15 @@
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
                 
-                const schedulesRef = collection(db, `artifacts/${appId}/public/data/periods`); // Caminho correto do Firestore
+                // CORREÇÃO: Usar o caminho privado do usuário
+                const schedulesRef = collection(db, `artifacts/${appId}/users/${userId}/periods`); 
                 try {
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
                     querySnapshot.forEach((doc) => {
-                        const [year, month, type] = doc.id.split('-');
+                        // CORREÇÃO: Lida com IDs que contêm hífen (como 'extraordinaria_viagem')
+                        const [year, month, ...typeParts] = doc.id.split('-'); 
+                        const type = typeParts.join('-'); // Rejunta o tipo
                         if (type === targetType) {
                             scales.push({ id: doc.id, ...doc.data() });
                         }
@@ -560,7 +571,9 @@
                     scales.sort((a, b) => b.id.localeCompare(a.id));
 
                     scales.forEach(scale => {
-                        const [year, month, type] = scale.id.split('-');
+                        // CORREÇÃO: Lida com IDs que contêm hífen
+                        const [year, month, ...typeParts] = scale.id.split('-');
+                        const type = typeParts.join('-'); // Rejunta o tipo
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
                         
                         let scheduleTypeName;
@@ -773,8 +786,9 @@
             initialize(); 
         };
 
-        const main = async () => { // A função main não precisa mais ser assíncrona
-            initializeAppLogic();
+        const main = async () => {
+            // A lógica de inicialização do App (event listeners, etc.) é movida para
+            // dentro do onAuthStateChanged, mas a config do Firebase é feita aqui.
             
             // Usar config global do Firebase
             const firebaseConfig = typeof __firebase_config !== 'undefined'
@@ -793,17 +807,18 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                
+                setLogLevel('Debug'); // Adiciona log detalhado do Firestore
+
                 // onAuthStateChanged é o observador principal
                 onAuthStateChanged(auth, user => {
                     if (user) {
                         // Usuário está logado.
                         console.log("Autenticado com sucesso com UID:", user.uid);
-                        const year = parseInt(document.getElementById('year-select').value);
-                        const month = parseInt(document.getElementById('month-select').value);
-                        const scheduleType = document.getElementById('schedule-type-select').value;
-                        // Carrega os dados SOMENTE APÓS confirmar a autenticação
-                        window.loadScheduleDataForCurrentView(year, month, scheduleType);
+                        userId = user.uid; // Define o userId global
+                        
+                        // CORREÇÃO: AGORA inicializa a lógica do app, pois temos um userId
+                        initializeAppLogic(); 
+                        
                     } else {
                         // Usuário está deslogado. Tenta fazer o login.
                         console.log("Usuário deslogado. Tentando login...");
