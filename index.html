@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -135,7 +134,7 @@
             <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">Acesso Restrito</h2>
             <form id="login-form">
                 <div class="mb-4">
-                    <label for="username" class="block text-sm font-medium text-slate-700">Usuário</label>
+                    <label for="username" class="block text-sm font-medium text-slate-700">Usuário (Email)</label>
                     <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
                 </div>
                 <div class="mb-6">
@@ -243,11 +242,12 @@
         <div id="past-scales-viagem-view" class="tab-content hidden">
             <div id="past-scales-list-viagem" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         </div>
+        
     </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth;
@@ -260,7 +260,9 @@
             isAppInitialized = true;
             console.log("Inicializando a lógica do app com userId:", userId);
 
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'escala-de-plantoes-v1'; // Usar appId global ou fallback
+            // *** CORREÇÃO: Forçar o appId correto ***
+            appId = 'escala-de-plantoes-v1'; // Forçar o ID correto para carregar escalas salvas
+            
             const scheduleTypeSelect = document.getElementById('schedule-type-select');
             const monthSelect = document.getElementById('month-select');
             const yearSelect = document.getElementById('year-select');
@@ -282,12 +284,13 @@
             const pastScalesListNelson = document.getElementById('past-scales-list-nelson');
             const pastScalesListFds = document.getElementById('past-scales-list-fds');
             const pastScalesListViagem = document.getElementById('past-scales-list-viagem');
+            
 
 
             let sessionTimeoutId = null;
             const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
-            const LOGIN_USER = 'escala';
-            const LOGIN_PASS = '3458';
+            // O LOGIN_USER e LOGIN_PASS locais não são mais a fonte da verdade.
+            // O login real do Firebase é que manda.
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const ALLOWED_NAMES = ['EDUARDO', 'ESCALA', 'GABRIEL', 'GARCEZ', 'LEANDRO', 'LISBOA', 'MALCHER', 'PENNA', 'THEODORO', 'VIEIRA', 'WASHINGTON'];
@@ -336,6 +339,11 @@
                 disableEditing();
                 clearTimeout(sessionTimeoutId);
                 sessionTimeoutId = null;
+                // CORREÇÃO: Fazer sign-out do Firebase.
+                // O onAuthStateChanged tratará de fazer o login anônimo novamente.
+                if (auth) {
+                    signOut(auth).catch(error => console.error("Erro ao fazer logout:", error));
+                }
             };
 
             loginButton.addEventListener('click', () => loginModal.classList.remove('hidden'));
@@ -347,17 +355,38 @@
                 }
             });
 
-            loginForm.addEventListener('submit', (e) => {
+            loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const username = e.target.username.value;
                 const password = e.target.password.value;
-                if (username === LOGIN_USER && password === LOGIN_PASS) {
+                
+                // CORREÇÃO: Em vez de login local, fazer login real no Firebase
+                // para obter permissão de escrita (não-anônimo).
+                // O utilizador deve inserir o email completo registado no Firebase Auth.
+                loginError.classList.add('hidden');
+                loginError.textContent = "Usuário ou senha inválidos."; // Resetar msg
+                
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, username, password); // Usar 'username' como email
+                    console.log("Login (não-anônimo) bem-sucedido:", userCredential.user.uid);
+                    
+                    // Sucesso no login do Firebase
                     enableEditing();
                     resetSessionTimer();
                     loginModal.classList.add('hidden');
                     loginError.classList.add('hidden');
                     e.target.reset();
-                } else {
+
+                } catch (error) {
+                    console.error("Falha no login do Firebase:", error.code);
+                    // *** CORREÇÃO: Mensagem de erro mais específica para email inválido ***
+                    if (error.code === 'auth/invalid-email') {
+                        loginError.textContent = "O usuário deve ser um email válido (ex: email@dominio.com).";
+                    } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                         loginError.textContent = "Email ou senha inválidos.";
+                    } else {
+                        loginError.textContent = `Erro: ${error.code}`;
+                    }
                     loginError.classList.remove('hidden');
                 }
             });
@@ -444,6 +473,14 @@
                     console.error("Save failed: DB not initialized or user not authenticated.");
                     return;
                 }
+
+                // VERIFICAÇÃO FINAL: Checar se é anônimo antes de salvar
+                if (auth.currentUser.isAnonymous) {
+                    console.error("Save blocked: User is anonymous. Please log in.");
+                    alert("Erro: Você está em modo de leitura. Faça login para salvar.");
+                    return;
+                }
+
                 saveButton.disabled = true;
                 saveButton.textContent = 'Salvando...';
 
@@ -469,8 +506,8 @@
                 };
 
                 try {
-                    // CORREÇÃO: Usar o caminho privado do usuário
-                    const scheduleRef = doc(db, `artifacts/${appId}/users/${userId}/periods`, docId); 
+                    // Usar o caminho original do Firebase (schedules)
+                    const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
                     await setDoc(scheduleRef, dataToSave);
                     saveButton.textContent = 'Salvo ✓';
                 } catch (error) {
@@ -491,8 +528,8 @@
                     return;
                 }
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
-                // CORREÇÃO: Usar o caminho privado do usuário
-                const scheduleRef = doc(db, `artifacts/${appId}/users/${userId}/periods`, docId); 
+                // Usar o caminho original do Firebase (schedules)
+                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
                 
                 try {
                     const docSnap = await getDoc(scheduleRef);
@@ -549,13 +586,13 @@
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
                 
-                // CORREÇÃO: Usar o caminho privado do usuário
-                const schedulesRef = collection(db, `artifacts/${appId}/users/${userId}/periods`); 
+                // Usar o caminho original do Firebase (schedules)
+                const schedulesRef = collection(db, `schedules/${appId}/periods`); 
                 try {
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
                     querySnapshot.forEach((doc) => {
-                        // CORREÇÃO: Lida com IDs que contêm hífen (como 'extraordinaria_viagem')
+                        // Lida com IDs que contêm hífen (como 'extraordinaria_viagem')
                         const [year, month, ...typeParts] = doc.id.split('-'); 
                         const type = typeParts.join('-'); // Rejunta o tipo
                         if (type === targetType) {
@@ -569,10 +606,10 @@
                         return;
                     }
                     
-                    scales.sort((a, b) => b.id.localeCompare(a.id));
+                    scales.sort((a, b) => b.id.localeCompare(a, b));
 
                     scales.forEach(scale => {
-                        // CORREÇÃO: Lida com IDs que contêm hífen
+                        // Lida com IDs que contêm hífen
                         const [year, month, ...typeParts] = scale.id.split('-');
                         const type = typeParts.join('-'); // Rejunta o tipo
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
@@ -590,7 +627,7 @@
                             typeColorClass = 'bg-green-100 text-green-800';
                         } else if (type === 'extraordinaria_viagem') {
                             scheduleTypeName = 'Extraordinária - Viagem';
-                            typeColorClass = 'bg-yellow-100 text-yellow-800';
+                            typeColorClass = 'bg-cyan-100 text-cyan-800';
                         }
 
                         const card = document.createElement('div');
@@ -720,7 +757,13 @@
                 } else {
                     updateSummary();
                 }
-                disableEditing();
+
+                // Verificar o estado de login atual para habilitar/desabilitar a edição
+                if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
+                    enableEditing();
+                } else {
+                    disableEditing();
+                }
             };
             
             const updateTitle = (year, month) => {
@@ -784,6 +827,7 @@
             yearSelect.addEventListener('change', handleDateChange);
             scheduleTypeSelect.addEventListener('change', handleDateChange);
             
+            // CORREÇÃO: Re-adicionar a inicialização para carregar o calendário
             initialize(); 
         };
 
@@ -791,17 +835,14 @@
             // A lógica de inicialização do App (event listeners, etc.) é movida para
             // dentro do onAuthStateChanged, mas a config do Firebase é feita aqui.
             
-            // Usar config global do Firebase
-            const firebaseConfig = typeof __firebase_config !== 'undefined'
-                ? JSON.parse(__firebase_config)
-                : {
-                    // Config de fallback (a que estava antes)
-                    apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
-                    authDomain: "escala-26e73.firebaseapp.com",
-                    projectId: "escala-26e73",
-                    storageBucket: "escala-26e73.appspot.com",
-                    messagingSenderId: "1084570993293",
-                    appId: "1:1084570993293:web:cab3627f9527b55da198c4"
+            // Usar a config exata fornecida por si
+            const firebaseConfig = {
+                  apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
+                  authDomain: "escala-26e73.firebaseapp.com",
+                  projectId: "escala-26e73",
+                  storageBucket: "escala-26e73.firebasestorage.app",
+                  messagingSenderId: "1084570993293",
+                  appId: "1:1084570993293:web:cab3627f9527b55da198c4"
                 };
 
             try {
@@ -815,29 +856,22 @@
                     if (user) {
                         // Usuário está logado.
                         console.log("Autenticado com sucesso com UID:", user.uid);
+                        if (user.isAnonymous) {
+                            console.log("Utilizador é ANÓNIMO. Permissões: LEITURA");
+                        } else {
+                            console.log("Utilizador é NÃO-ANÓNIMO. Permissões: LEITURA/ESCRITA");
+                        }
                         userId = user.uid; // Define o userId global
                         
-                        // CORREÇÃO: AGORA inicializa a lógica do app, pois temos um userId
+                        // AGORA inicializa a lógica do app, pois temos um userId
                         initializeAppLogic(); 
                         
                     } else {
-                        // Usuário está deslogado. Tenta fazer o login.
-                        console.log("Usuário deslogado. Tentando login...");
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            // Tenta login com token customizado
-                            signInWithCustomToken(auth, __initial_auth_token).catch(tokenError => {
-                                console.error("Login com token customizado falhou, tentando anônimo:", tokenError);
-                                // Se falhar, tenta login anônimo
-                                signInAnonymously(auth).catch(anonError => {
-                                    console.error("Login anônimo falhou:", anonError);
-                                });
-                            });
-                        } else {
-                            // Tenta login anônimo
-                            signInAnonymously(auth).catch(anonError => {
-                                console.error("Login anônimo falhou:", anonError);
-                            });
-                        }
+                        // Usuário está deslogado. Tenta fazer o login anônimo para leitura.
+                        console.log("Usuário deslogado. Tentando login anônimo...");
+                        signInAnonymously(auth).catch(anonError => {
+                            console.error("Login anônimo falhou:", anonError);
+                        });
                     }
                 });
 
@@ -850,4 +884,5 @@
     </script>
 </body>
 </html>
+
 
