@@ -773,7 +773,7 @@
             initialize(); 
         };
 
-        const main = async () => { // Tornar main assíncrona
+        const main = async () => { // A função main não precisa mais ser assíncrona
             initializeAppLogic();
             
             // Usar config global do Firebase
@@ -789,48 +789,44 @@
                     appId: "1:1084570993293:web:cab3627f9527b55da198c4"
                 };
 
-//                apiKey: "YOUR_API_KEY",
-//                authDomain: "YOUR_AUTH_DOMAIN",
-//                projectId: "YOUR_PROJECT_ID",
-//                storageBucket: "YOUR_STORAGE_BUCKET",
-//                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-//                appId: "YOUR_APP_ID"
-
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                // Login com token customizado (do ambiente) ou anônimo
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    try {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } catch (tokenError) {
-                        console.error("Custom token sign-in failed, falling back to anonymous:", tokenError);
-                        await signInAnonymously(auth);
-                    }
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
+                // onAuthStateChanged é o observador principal
                 onAuthStateChanged(auth, user => {
                     if (user) {
-                        console.log("Authenticated successfully with UID:", user.uid);
+                        // Usuário está logado.
+                        console.log("Autenticado com sucesso com UID:", user.uid);
                         const year = parseInt(document.getElementById('year-select').value);
                         const month = parseInt(document.getElementById('month-select').value);
                         const scheduleType = document.getElementById('schedule-type-select').value;
+                        // Carrega os dados SOMENTE APÓS confirmar a autenticação
                         window.loadScheduleDataForCurrentView(year, month, scheduleType);
                     } else {
-                        console.log("User is signed out.");
-                        // Tenta login anônimo se o usuário não estiver logado
-                        signInAnonymously(auth).catch(err => {
-                             console.error("Anonymous sign-in failed:", err);
-                        });
+                        // Usuário está deslogado. Tenta fazer o login.
+                        console.log("Usuário deslogado. Tentando login...");
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            // Tenta login com token customizado
+                            signInWithCustomToken(auth, __initial_auth_token).catch(tokenError => {
+                                console.error("Login com token customizado falhou, tentando anônimo:", tokenError);
+                                // Se falhar, tenta login anônimo
+                                signInAnonymously(auth).catch(anonError => {
+                                    console.error("Login anônimo falhou:", anonError);
+                                });
+                            });
+                        } else {
+                            // Tenta login anônimo
+                            signInAnonymously(auth).catch(anonError => {
+                                console.error("Login anônimo falhou:", anonError);
+                            });
+                        }
                     }
                 });
 
             } catch (error) {
-                console.error("Firebase initialization failed:", error);
+                console.error("Inicialização do Firebase falhou:", error);
             }
         };
 
@@ -838,6 +834,4 @@
     </script>
 </body>
 </html>
-
-
 
