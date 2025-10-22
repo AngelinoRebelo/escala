@@ -19,7 +19,7 @@
             border: 1px solid #d1d5db; /* border-gray-300 */
             padding: 4px 8px;
             margin: 0;
-            width: 100%;
+            width: 100%; /* --- CORREÇÃO: Deixar o CSS tratar da largura --- */
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 900;
@@ -245,7 +245,7 @@
                     </table>
                 </div>
                 <!-- Resumo de Plantões -->
-                <aside class="w-full lg:w-14 flex-shrink-0 summary-container">
+                <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
                     <div class="bg-slate-100 p-4 rounded-lg h-full">
                         <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
                         <table class="w-full mt-4 text-sm">
@@ -294,24 +294,20 @@
         let userId; // Variável global no módulo para o userId
         let isAppInitialized = false; // Flag para garantir inicialização única
         
-        // *** Mover calendarBody para o escopo global do módulo ***
-        // Para que o loadScheduleData e printButton possam encontrá-lo
         let calendarBody; 
-        let summaryBody; // Mover para cá também
+        let summaryBody; 
 
         const initializeAppLogic = () => {
-            if (isAppInitialized) return; // Prevenir re-inicialização
+            if (isAppInitialized) return; 
             isAppInitialized = true;
             console.log("Inicializando a lógica do app com userId:", userId);
 
-            // *** CORREÇÃO: Forçar o appId correto ***
-            appId = 'escala-de-plantoes-v1'; // Forçar o ID correto para carregar escalas salvas
+            appId = 'escala-de-plantoes-v1'; 
             
             const scheduleTypeSelect = document.getElementById('schedule-type-select');
             const monthSelect = document.getElementById('month-select');
             const yearSelect = document.getElementById('year-select');
             
-            // *** Atribuir à variável global do módulo ***
             calendarBody = document.getElementById('calendar-body'); 
             summaryBody = document.getElementById('summary-body');
             
@@ -332,8 +328,6 @@
             const pastScalesListFds = document.getElementById('past-scales-list-fds');
             const pastScalesListViagem = document.getElementById('past-scales-list-viagem');
             
-
-
             let sessionTimeoutId = null;
             const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
             
@@ -556,15 +550,14 @@
 
             const updateSummary = () => {
                 const agentCounts = {};
-                // *** Usar o seletor específico `calendarBody` ***
-                if (!calendarBody) return; // Proteção
+                if (!calendarBody) return; 
 
                 calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
                     const name = field.value;
                     if (name && name !== 'ESCALA') agentCounts[name] = (agentCounts[name] || 0) + 1;
                 });
                 
-                if (!summaryBody) return; // Proteção
+                if (!summaryBody) return; 
                 summaryBody.innerHTML = '';
                 const sortedAgents = Object.keys(agentCounts).sort();
                 if (sortedAgents.length === 0) {
@@ -586,6 +579,7 @@
                 }
             };
             
+            // Esta função não é mais chamada ao carregar
             const adjustSelectWidth = (selectElement) => {
                 if (!selectElement || !selectElement.options) return;
                 if (!selectElement.value) {
@@ -626,7 +620,7 @@
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
                 
                 const scheduleData = {};
-                if (!calendarBody) return; // Proteção
+                if (!calendarBody) return; 
                 
                 calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
                     const date = field.dataset.date;
@@ -704,7 +698,9 @@
                              select.value = '';
                         }
                        
-                        adjustSelectWidth(select);
+                        // *** CORREÇÃO: Remover a chamada que causa o bug visual ***
+                        // adjustSelectWidth(select); 
+                        
                         applyPlaceholderStyle(select);
                     });
                     
@@ -827,7 +823,7 @@
 
             const generateCalendar = (year, month, scheduleType) => {
                 if (!calendarBody) return; 
-                calendarBody.innerHTML = ''; // Limpar
+                calendarBody.innerHTML = ''; 
                 
                 const startDate = new Date(year, month, 16);
                 const endDate = new Date(year, month + 1, 15);
@@ -894,7 +890,9 @@
                                 select.innerHTML = `<option value=""></option>${ALLOWED_NAMES.map(n => `<option value="${n}">${n}</option>`).join('')}`;
                                 select.addEventListener('change', (e) => {
                                     updateSummary();
-                                    adjustSelectWidth(e.target);
+                                    // A função que causava o bug foi removida, 
+                                    // mas esta ainda é útil na *edição* manual.
+                                    adjustSelectWidth(e.target); 
                                     applyPlaceholderStyle(e.target);
                                 });
                                 container.appendChild(select);
