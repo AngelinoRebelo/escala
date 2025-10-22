@@ -823,9 +823,9 @@
             };
             
             saveButton.addEventListener('click', saveScheduleData);
-            monthSelect.addEventListener('change', handleDateChange);
-            yearSelect.addEventListener('change', handleDateChange);
-            scheduleTypeSelect.addEventListener('change', handleDateChange);
+            monthSelect.addEventListener('click', handleDateChange); // Mudar para 'click' pode ajudar em alguns browsers
+            yearSelect.addEventListener('click', handleDateChange); // Mudar para 'click'
+            scheduleTypeSelect.addEventListener('click', handleDateChange); // Mudar para 'click'
             
             // CORREÇÃO: Re-adicionar a inicialização para carregar o calendário
             initialize(); 
@@ -884,5 +884,4 @@
     </script>
 </body>
 </html>
-
 
