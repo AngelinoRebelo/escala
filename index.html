@@ -66,99 +66,97 @@
         #login-modal {
             background-color: rgba(0, 0, 0, 0.5);
         }
-        .static-agent-name {
-            display: none;
-        }
         
         /* --- ESTILOS DE IMPRESSÃO --- */
+        
+        /* Este div conterá a tabela de impressão gerada */
+        #print-render-area {
+            display: none; /* Escondido por padrão */
+        }
+
         @media print {
             /* --- Configurações Gerais de Impressão --- */
             body { 
                 background-color: #fff !important; 
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                font-size: 9pt !important; /* Reduz o tamanho da fonte base */
-            }
-            main { 
-                max-width: none !important; 
-                padding: 0 !important; 
-                margin: 0 !important; 
-                box-shadow: none !important; 
-                border: none !important; 
+                font-size: 9pt !important;
             }
             
-            /* --- Esconder Elementos da UI --- */
-            #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button { display: none !important; }
-            .tab-content { display: none !important; }
-            #current-scale-view { display: block !important; }
-            
-            /* --- Layout da Escala e Resumo --- */
-            .title-container { justify-content: center !important; margin-bottom: 0.5rem !important; }
-            #print-layout-container { 
-                display: flex !important; 
-                flex-direction: column !important; /* Resumo sempre abaixo */
-                width: 100% !important; 
-            }
-            .table-container, .summary-container { 
-                width: 100% !important; 
-                margin-top: 1rem !important; 
-                margin-left: 0 !important; 
-                flex-shrink: 0 !important;
-                page-break-inside: avoid !important; /* Evitar quebra de página */
-            }
-
-            /* --- Estilos da Tabela (Mais Compacta) --- */
-            table { 
-                border-collapse: collapse !important; 
-                width: 100% !important; 
-                table-layout: fixed; /* Ajuda a controlar larguras */
-            }
-            td, th {
-                border: 1px solid #94a3b8 !important; /* slate-400 */
-                height: 3.2rem !important; /* Altura da célula reduzida */
-                padding: 1px !important;
-                font-size: 0.75rem !important;
-                word-wrap: break-word; /* Quebrar nomes se necessário */
-            }
-            th { 
-                font-size: 0.7rem !important; 
-                padding: 3px 1px !important; 
+            /* --- Esconder TUDO da UI normal --- */
+            main, #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button { 
+                display: none !important; 
             }
             
-            /* --- Rótulos de Data (Mais Compactos) --- */
-            .date-label {
-                font-size: 0.8rem !important; /* Tamanho da data reduzido */
+            /* --- Mostrar APENAS a área de impressão gerada --- */
+            #print-render-area { 
+                display: block !important; 
+                width: 100% !important;
+            }
+            
+            /* --- Título da Impressão --- */
+            #print-title {
+                text-align: center;
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #000 !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* --- Tabela de Lista (Estilo "Escala dos Cultos") --- */
+            #print-list-table, #print-summary-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed;
+                page-break-inside: avoid !important; /* Evitar quebra */
+            }
+            #print-list-table th, #print-list-table td,
+            #print-summary-table th, #print-summary-table td {
+                border: 1px solid #94a3b8 !important; /* Borda cinza */
+                padding: 4px 6px !important;
+                font-size: 0.9rem !important;
+                color: #000 !important;
+                word-wrap: break-word;
+            }
+            #print-list-table th {
+                background-color: #e2e8f0 !important; /* Fundo cinza claro */
                 font-weight: 700 !important;
-                padding: 2px 0 !important;
-                margin-bottom: 2px !important;
-                color: #fff !important;
+                padding: 6px !important;
             }
-
-            /* --- Nomes dos Agentes (Mostrar) --- */
-            select.agent-name-input { display:none !important; }
-             .static-agent-name { 
-                display: block !important;
-                font-weight: 700 !important;
-                font-size: 0.7rem !important; /* Fonte do nome bem reduzida */
-                text-align: center !important;
-                padding: 1px !important;
-                color: #000 !important; /* Garantir que o texto seja preto */
+            /* Colunas da tabela de lista */
+            .print-col-date { width: 15%; }
+            .print-col-day { width: 20%; }
+            .print-col-agent { width: 32.5%; }
+            
+            /* Zebra striping */
+            #print-list-table tbody tr:nth-child(even) {
+                background-color: #f8fafc !important; /* Fundo cinza bem claro */
             }
             
-            /* --- Cores de Fundo (Manter) --- */
-            .bg-slate-900 { background-color: #0f172a !important; color: #fff !important; }
-            .bg-white { background-color: #fff !important; }
-            .bg-indigo-500 { background-color: #6366f1 !important; }
-            .bg-blue-500 { background-color: #3b82f6 !important; }
-            .bg-slate-50 { background-color: #f8fafc !important; }
-            .bg-slate-100 { background-color: #f1f5f9 !important; }
-            .bg-slate-200 { background-color: #e2e8f0 !important; }
-            .text-white { color: #fff !important; }
-            .text-slate-900 { color: #0f172a !important; }
-
-            /* --- Tabela de Resumo --- */
-            .summary-table-header { border-bottom: 1px solid #ccc !important; }
-            .summary-container table { table-layout: auto; } /* Deixar resumo auto */
+            /* --- Tabela de Resumo (Impressão) --- */
+            #print-summary-container {
+                margin-top: 2rem !important;
+                width: 60% !important;
+                margin-left: auto;
+                margin-right: auto;
+                page-break-inside: avoid !important; /* Evitar quebra */
+            }
+            #print-summary-container h2 {
+                text-align: center;
+                font-size: 1.1rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+                color: #000 !important;
+            }
+            #print-summary-table th {
+                background-color: #e2e8f0 !important;
+                font-weight: 700 !important;
+                text-align: left;
+            }
+             #print-summary-table td:last-child {
+                 text-align: right;
+                 font-weight: 700;
+             }
         }
         
     </style>
@@ -247,7 +245,7 @@
                     </table>
                 </div>
                 <!-- Resumo de Plantões -->
-                <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
+                <aside class="w-full lg:w-14 flex-shrink-0 summary-container">
                     <div class="bg-slate-100 p-4 rounded-lg h-full">
                         <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
                         <table class="w-full mt-4 text-sm">
@@ -282,6 +280,10 @@
         
     </main>
 
+    <!-- *** ÁREA DE RENDERIZAÇÃO DE IMPRESSÃO (ESCONDIDA) *** -->
+    <div id="print-render-area"></div>
+
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -295,6 +297,7 @@
         // *** Mover calendarBody para o escopo global do módulo ***
         // Para que o loadScheduleData e printButton possam encontrá-lo
         let calendarBody; 
+        let summaryBody; // Mover para cá também
 
         const initializeAppLogic = () => {
             if (isAppInitialized) return; // Prevenir re-inicialização
@@ -310,8 +313,8 @@
             
             // *** Atribuir à variável global do módulo ***
             calendarBody = document.getElementById('calendar-body'); 
+            summaryBody = document.getElementById('summary-body');
             
-            const summaryBody = document.getElementById('summary-body');
             const dateTitlePart = document.getElementById('date-title-part');
             const editableTitlePart = document.getElementById('editable-title-part');
             const locationPart = document.getElementById('location-part');
@@ -381,8 +384,6 @@
                 disableEditing();
                 clearTimeout(sessionTimeoutId);
                 sessionTimeoutId = null;
-                // CORREÇÃO: Fazer sign-out do Firebase.
-                // O onAuthStateChanged tratará de fazer o login anônimo novamente.
                 if (auth) {
                     signOut(auth).catch(error => console.error("Erro ao fazer logout:", error));
                 }
@@ -402,17 +403,13 @@
                 const username = e.target.username.value;
                 const password = e.target.password.value;
                 
-                // CORREÇÃO: Em vez de login local, fazer login real no Firebase
-                // para obter permissão de escrita (não-anônimo).
-                // O utilizador deve inserir o email completo registado no Firebase Auth.
                 loginError.classList.add('hidden');
                 loginError.textContent = "Usuário ou senha inválidos."; // Resetar msg
                 
                 try {
-                    const userCredential = await signInWithEmailAndPassword(auth, username, password); // Usar 'username' como email
+                    const userCredential = await signInWithEmailAndPassword(auth, username, password); 
                     console.log("Login (não-anônimo) bem-sucedido:", userCredential.user.uid);
                     
-                    // Sucesso no login do Firebase
                     enableEditing();
                     resetSessionTimer();
                     loginModal.classList.add('hidden');
@@ -421,7 +418,6 @@
 
                 } catch (error) {
                     console.error("Falha no login do Firebase:", error.code);
-                    // *** CORREÇÃO: Mensagem de erro mais específica para email inválido ***
                     if (error.code === 'auth/invalid-email') {
                         loginError.textContent = "O usuário deve ser um email válido (ex: email@dominio.com).";
                     } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
@@ -441,36 +437,122 @@
                 });
             });
 
+            // *** NOVA LÓGICA DE IMPRESSÃO ***
             printButton.addEventListener('click', () => {
-                const staticNames = [];
-                // *** CORREÇÃO: Usar o seletor específico `calendarBody` ***
-                // Este é o mesmo seletor que o `updateSummary` usa, garantindo que leia os mesmos dados.
-                if (!calendarBody) return; // Proteção
+                if (!calendarBody || !summaryBody) return; // Proteção
+
+                // 1. Coletar dados da escala (apenas dias com agentes)
+                const scheduleData = [];
+                const daysOfWeek = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+                const monthSelect = document.getElementById('month-select');
+                const yearSelect = document.getElementById('year-select');
+                const startDate = new Date(yearSelect.value, monthSelect.value, 16);
+                const endDate = new Date(yearSelect.value, parseInt(monthSelect.value) + 1, 15);
                 
-                calendarBody.querySelectorAll('.agent-name-input').forEach(select => {
-                    if (select.value) {
-                        const nameDiv = document.createElement('div');
-                        nameDiv.className = 'static-agent-name';
-                        nameDiv.textContent = select.value;
-                        select.parentNode.appendChild(nameDiv);
-                        staticNames.push(nameDiv); 
+                let currentDate = new Date(startDate);
+
+                while (currentDate <= endDate) {
+                    const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                    const selects = calendarBody.querySelectorAll(`select[data-date="${dateString}"]`);
+                    
+                    if (selects && selects.length > 0) {
+                        const agents = [selects[0].value, selects[1].value].filter(Boolean); // Filtra vazios
+                        if (agents.length > 0) {
+                            scheduleData.push({
+                                dateObj: new Date(currentDate),
+                                dateLabel: `${String(currentDate.getDate()).padStart(2, '0')}/${String(currentDate.getMonth() + 1).padStart(2, '0')}`,
+                                dayLabel: daysOfWeek[currentDate.getDay()],
+                                agents: agents
+                            });
+                        }
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                // 2. Coletar dados do resumo
+                const summaryData = [];
+                summaryBody.querySelectorAll('tr').forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length === 2) {
+                        summaryData.push({
+                            agent: cells[0].textContent,
+                            total: cells[1].textContent
+                        });
                     }
                 });
 
-                // Handler para limpar os divs depois da impressão
+                // 3. Gerar o HTML para a área de impressão
+                const printArea = document.getElementById('print-render-area');
+                const mainTitle = document.getElementById('editable-title-part').textContent;
+                const dateTitle = document.getElementById('date-title-part').textContent;
+
+                let html = `<h1 id="print-title">${mainTitle}${dateTitle}</h1>`;
+                
+                // Tabela de Lista da Escala
+                html += `
+                    <table id="print-list-table">
+                        <thead>
+                            <tr>
+                                <th class="print-col-date">DATA</th>
+                                <th class="print-col-day">DIA</th>
+                                <th class="print-col-agent">AGENTE 1</th>
+                                <th class="print-col-agent">AGENTE 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                scheduleData.forEach(day => {
+                    html += `
+                        <tr>
+                            <td>${day.dateLabel}</td>
+                            <td>${day.dayLabel}</td>
+                            <td>${day.agents[0] || ''}</td>
+                            <td>${day.agents[1] || ''}</td>
+                        </tr>
+                    `;
+                });
+                html += `</tbody></table>`;
+
+                // Tabela de Resumo
+                if (summaryData.length > 0) {
+                    html += `
+                        <div id="print-summary-container">
+                            <h2>Plantões Trabalhados</h2>
+                            <table id="print-summary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Agente</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    summaryData.forEach(item => {
+                        html += `
+                            <tr>
+                                <td>${item.agent}</td>
+                                <td>${item.total}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+                
+                printArea.innerHTML = html;
+
+                // Handler para limpar a área de impressão
                 const afterPrintHandler = () => {
-                    staticNames.forEach(el => el.remove());
+                    printArea.innerHTML = ''; // Limpar o HTML gerado
                     window.removeEventListener('afterprint', afterPrintHandler);
                 };
                 window.addEventListener('afterprint', afterPrintHandler);
-                
-                // *** CORREÇÃO: Usar um setTimeout para dar tempo ao DOM de renderizar ***
-                // Dar 100ms para o navegador processar os novos divs .static-agent-name
-                // antes de chamar a janela de impressão.
+
+                // Chamar a impressão
                 setTimeout(() => {
                     window.print();
-                }, 100); 
+                }, 100); // Pequeno delay para garantir a renderização
             });
+
 
             const updateSummary = () => {
                 const agentCounts = {};
@@ -482,6 +564,7 @@
                     if (name && name !== 'ESCALA') agentCounts[name] = (agentCounts[name] || 0) + 1;
                 });
                 
+                if (!summaryBody) return; // Proteção
                 summaryBody.innerHTML = '';
                 const sortedAgents = Object.keys(agentCounts).sort();
                 if (sortedAgents.length === 0) {
@@ -528,7 +611,6 @@
                     return;
                 }
 
-                // VERIFICAÇÃO FINAL: Checar se é anônimo antes de salvar
                 if (auth.currentUser.isAnonymous) {
                     console.error("Save blocked: User is anonymous. Please log in.");
                     alert("Erro: Você está em modo de leitura. Faça login para salvar.");
@@ -544,7 +626,6 @@
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
                 
                 const scheduleData = {};
-                // *** Usar o seletor específico `calendarBody` ***
                 if (!calendarBody) return; // Proteção
                 
                 calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
@@ -563,7 +644,6 @@
                 };
 
                 try {
-                    // Usar o caminho original do Firebase (schedules)
                     const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
                     await setDoc(scheduleRef, dataToSave);
                     saveButton.textContent = 'Salvo ✓';
@@ -584,14 +664,12 @@
                     console.error("Load failed: DB not initialized or user not authenticated.");
                     return;
                 }
-                // *** Proteção: Garantir que o calendarBody exista antes de carregar ***
                 if (!calendarBody) {
                     console.error("Load failed: calendarBody is not ready.");
                     return;
                 }
                 
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
-                // Usar o caminho original do Firebase (schedules)
                 const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
                 
                 try {
@@ -615,18 +693,14 @@
                         scheduleData = data?.schedule || {};
                     }
 
-                    // *** CORREÇÃO: Usar o seletor específico `calendarBody` ***
-                    // Este é o seletor que garante que estamos a preencher os inputs corretos.
                     calendarBody.querySelectorAll('.agent-name-input').forEach(select => {
                         const date = select.dataset.date;
                         const index = parseInt(select.dataset.index);
                         const agentName = scheduleData[date]?.[index] || '';
                         
-                        // Verificar se o nome existe na lista, senão definir como ""
                         if (ALLOWED_NAMES.includes(agentName)) {
                              select.value = agentName;
                         } else {
-                             // Limpar se o nome não for válido (ex: "ESCALA" antigo ou vazio)
                              select.value = '';
                         }
                        
@@ -634,10 +708,8 @@
                         applyPlaceholderStyle(select);
                     });
                     
-                    // Chamar o updateSummary DEPOIS que os selects estiverem preenchidos
                     updateSummary();
                     
-                    // Garantir que o título seja atualizado mesmo se os dados não existirem
                     if (!data && !(scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9)) {
                         editableTitlePart.textContent = defaultTitle;
                     }
@@ -645,7 +717,6 @@
 
                 } catch(error) {
                     console.error("Error loading schedule data:", error);
-                    // Mesmo com erro, preencher o resumo com o que (não) foi carregado
                     updateSummary();
                 }
             };
@@ -671,15 +742,13 @@
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
                 
-                // Usar o caminho original do Firebase (schedules)
                 const schedulesRef = collection(db, `schedules/${appId}/periods`); 
                 try {
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
                     querySnapshot.forEach((doc) => {
-                        // Lida com IDs que contêm hífen (como 'extraordinaria_viagem')
                         const [year, month, ...typeParts] = doc.id.split('-'); 
-                        const type = typeParts.join('-'); // Rejunta o tipo
+                        const type = typeParts.join('-'); 
                         if (type === targetType) {
                             scales.push({ id: doc.id, ...doc.data() });
                         }
@@ -694,9 +763,8 @@
                     scales.sort((a, b) => b.id.localeCompare(a, b));
 
                     scales.forEach(scale => {
-                        // Lida com IDs que contêm hífen
                         const [year, month, ...typeParts] = scale.id.split('-');
-                        const type = typeParts.join('-'); // Rejunta o tipo
+                        const type = typeParts.join('-'); 
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
                         
                         let scheduleTypeName;
@@ -758,7 +826,6 @@
             });
 
             const generateCalendar = (year, month, scheduleType) => {
-                // *** Garantir que o calendarBody exista ***
                 if (!calendarBody) return; 
                 calendarBody.innerHTML = ''; // Limpar
                 
@@ -843,12 +910,9 @@
                 if (auth && auth.currentUser) {
                     loadScheduleData(year, month, scheduleType);
                 } else {
-                    // Se o auth não estiver pronto, o loadScheduleData será chamado pelo onAuthStateChanged
-                    // Mas podemos preencher um resumo vazio por enquanto.
                     updateSummary();
                 }
 
-                // Verificar o estado de login atual para habilitar/desabilitar a edição
                 if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
                     enableEditing();
                 } else {
@@ -917,15 +981,11 @@
             yearSelect.addEventListener('change', handleDateChange);
             scheduleTypeSelect.addEventListener('change', handleDateChange);
             
-            // CORREÇÃO: Re-adicionar a inicialização para carregar o calendário
             initialize(); 
         };
 
         const main = async () => {
-            // A lógica de inicialização do App (event listeners, etc.) é movida para
-            // dentro do onAuthStateChanged, mas a config do Firebase é feita aqui.
             
-            // Usar a config exata fornecida por si
             const firebaseConfig = {
                   apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
                   authDomain: "escala-26e73.firebaseapp.com",
@@ -939,25 +999,21 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                setLogLevel('Debug'); // Adiciona log detalhado do Firestore
+                setLogLevel('Debug'); 
 
-                // onAuthStateChanged é o observador principal
                 onAuthStateChanged(auth, user => {
                     if (user) {
-                        // Usuário está logado.
                         console.log("Autenticado com sucesso com UID:", user.uid);
                         if (user.isAnonymous) {
                             console.log("Utilizador é ANÓNIMO. Permissões: LEITURA");
                         } else {
                             console.log("Utilizador é NÃO-ANÓNIMO. Permissões: LEITURA/ESCRITA");
                         }
-                        userId = user.uid; // Define o userId global
+                        userId = user.uid; 
                         
-                        // AGORA inicializa a lógica do app, pois temos um userId
                         initializeAppLogic(); 
                         
                     } else {
-                        // Usuário está deslogado. Tenta fazer o login anônimo para leitura.
                         console.log("Usuário deslogado. Tentando login anônimo...");
                         signInAnonymously(auth).catch(anonError => {
                             console.error("Login anônimo falhou:", anonError);
