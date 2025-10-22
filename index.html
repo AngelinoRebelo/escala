@@ -246,13 +246,14 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth;
+        let appId; // Tornar o appId acessível no módulo
 
         const initializeAppLogic = () => {
-            const appId = 'escala-de-plantoes-v1';
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'escala-de-plantoes-v1'; // Usar appId global ou fallback
             const scheduleTypeSelect = document.getElementById('schedule-type-select');
             const monthSelect = document.getElementById('month-select');
             const yearSelect = document.getElementById('year-select');
@@ -432,7 +433,10 @@
             };
 
             const saveScheduleData = async () => {
-                if (!db || !auth.currentUser) return;
+                if (!db || !auth.currentUser) {
+                    console.error("Save failed: DB not initialized or user not authenticated.");
+                    return;
+                }
                 saveButton.disabled = true;
                 saveButton.textContent = 'Salvando...';
 
@@ -458,7 +462,7 @@
                 };
 
                 try {
-                    const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                    const scheduleRef = doc(db, `artifacts/${appId}/public/data/periods`, docId); // Caminho correto do Firestore
                     await setDoc(scheduleRef, dataToSave);
                     saveButton.textContent = 'Salvo ✓';
                 } catch (error) {
@@ -474,9 +478,12 @@
             };
 
             const loadScheduleData = async (year, month, scheduleType) => {
-                if (!db || !auth.currentUser) return;
+                if (!db || !auth.currentUser) {
+                    console.error("Load failed: DB not initialized or user not authenticated.");
+                    return;
+                }
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
-                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                const scheduleRef = doc(db, `artifacts/${appId}/public/data/periods`, docId); // Caminho correto do Firestore
                 
                 try {
                     const docSnap = await getDoc(scheduleRef);
@@ -515,7 +522,10 @@
             window.loadScheduleDataForCurrentView = loadScheduleData;
 
             const loadPreviousScales = async (targetType) => {
-                if (!db || !auth.currentUser) return;
+                if (!db || !auth.currentUser) {
+                    console.error("Load previous scales failed: DB not initialized or user not authenticated.");
+                    return;
+                }
                 
                 let listEl;
                 if (targetType === 'ordinaria') {
@@ -530,7 +540,7 @@
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
                 
-                const schedulesRef = collection(db, `schedules/${appId}/periods`);
+                const schedulesRef = collection(db, `artifacts/${appId}/public/data/periods`); // Caminho correto do Firestore
                 try {
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
@@ -763,17 +773,21 @@
             initialize(); 
         };
 
-        const main = () => {
+        const main = async () => { // Tornar main assíncrona
             initializeAppLogic();
             
-            const firebaseConfig = {
-                apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
-                authDomain: "escala-26e73.firebaseapp.com",
-                projectId: "escala-26e73",
-                storageBucket: "escala-26e73.appspot.com",
-                messagingSenderId: "1084570993293",
-                appId: "1:1084570993293:web:cab3627f9527b55da198c4"
-            };
+            // Usar config global do Firebase
+            const firebaseConfig = typeof __firebase_config !== 'undefined'
+                ? JSON.parse(__firebase_config)
+                : {
+                    // Config de fallback (a que estava antes)
+                    apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
+                    authDomain: "escala-26e73.firebaseapp.com",
+                    projectId: "escala-26e73",
+                    storageBucket: "escala-26e73.appspot.com",
+                    messagingSenderId: "1084570993293",
+                    appId: "1:1084570993293:web:cab3627f9527b55da198c4"
+                };
 
 //                apiKey: "YOUR_API_KEY",
 //                authDomain: "YOUR_AUTH_DOMAIN",
@@ -787,14 +801,28 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
+                // Login com token customizado (do ambiente) ou anônimo
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    try {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } catch (tokenError) {
+                        console.error("Custom token sign-in failed, falling back to anonymous:", tokenError);
+                        await signInAnonymously(auth);
+                    }
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
                 onAuthStateChanged(auth, user => {
                     if (user) {
-                        console.log("Authenticated successfully.");
+                        console.log("Authenticated successfully with UID:", user.uid);
                         const year = parseInt(document.getElementById('year-select').value);
                         const month = parseInt(document.getElementById('month-select').value);
                         const scheduleType = document.getElementById('schedule-type-select').value;
                         window.loadScheduleDataForCurrentView(year, month, scheduleType);
                     } else {
+                        console.log("User is signed out.");
+                        // Tenta login anônimo se o usuário não estiver logado
                         signInAnonymously(auth).catch(err => {
                              console.error("Anonymous sign-in failed:", err);
                         });
