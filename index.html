@@ -19,7 +19,7 @@
             border: 1px solid #d1d5db; /* border-gray-300 */
             padding: 4px 8px;
             margin: 0;
-            width: 100%; /* --- CORREÇÃO: Deixar o CSS tratar da largura --- */
+            /* --- CORREÇÃO: width: 100% removido para permitir auto-ajuste --- */
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 900;
@@ -245,7 +245,7 @@
                     </table>
                 </div>
                 <!-- Resumo de Plantões -->
-                <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
+                <aside class="w-full lg:w-1D4 flex-shrink-0 summary-container">
                     <div class="bg-slate-100 p-4 rounded-lg h-full">
                         <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
                         <table class="w-full mt-4 text-sm">
@@ -579,13 +579,11 @@
                 }
             };
             
-            // Esta função não é mais chamada ao carregar
+            // --- CORREÇÃO: Função de auto-ajuste ---
             const adjustSelectWidth = (selectElement) => {
                 if (!selectElement || !selectElement.options) return;
-                if (!selectElement.value) {
-                    selectElement.style.width = '100%';
-                    return;
-                }
+                
+                // Criar um span temporário para medir o texto
                 const tempSpan = document.createElement('span');
                 const style = window.getComputedStyle(selectElement);
                 tempSpan.style.font = style.font;
@@ -593,8 +591,17 @@
                 tempSpan.style.position = 'absolute';
                 tempSpan.style.paddingLeft = style.paddingLeft;
                 tempSpan.style.paddingRight = style.paddingRight;
-                tempSpan.textContent = selectElement.options[selectElement.selectedIndex].text;
+                
+                if (!selectElement.value) {
+                    // Se estiver vazio, usar um placeholder de largura mínima
+                    tempSpan.textContent = "ESCALA"; // Usar uma palavra média
+                    tempSpan.style.opacity = "0.5";
+                } else {
+                    tempSpan.textContent = selectElement.options[selectElement.selectedIndex].text;
+                }
+                
                 document.body.appendChild(tempSpan);
+                // Adicionar 5px de "respiro"
                 selectElement.style.width = `${tempSpan.offsetWidth + 5}px`;
                 document.body.removeChild(tempSpan);
             };
@@ -698,8 +705,8 @@
                              select.value = '';
                         }
                        
-                        // *** CORREÇÃO: Remover a chamada que causa o bug visual ***
-                        // adjustSelectWidth(select); 
+                        // --- CORREÇÃO: Chamar auto-ajuste com delay para evitar bug ---
+                        setTimeout(() => adjustSelectWidth(select), 0);
                         
                         applyPlaceholderStyle(select);
                     });
@@ -888,10 +895,12 @@
                                 select.dataset.date = dateString;
                                 select.dataset.index = i;
                                 select.innerHTML = `<option value=""></option>${ALLOWED_NAMES.map(n => `<option value="${n}">${n}</option>`).join('')}`;
+                                
+                                // Ajustar largura ao carregar
+                                adjustSelectWidth(select); 
+                                
                                 select.addEventListener('change', (e) => {
                                     updateSummary();
-                                    // A função que causava o bug foi removida, 
-                                    // mas esta ainda é útil na *edição* manual.
                                     adjustSelectWidth(e.target); 
                                     applyPlaceholderStyle(e.target);
                                 });
