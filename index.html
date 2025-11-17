@@ -850,9 +850,14 @@
                         // Se um título customizado foi salvo, ele sobrepõe o padrão
                         if(data?.title) {
                             editableTitlePart.textContent = data.title;
-                            locationPart.textContent = ''; // Limpa a localização, pois o título salvo é completo
+                            // SÓ limpa a locationPart se o título salvo NÃO for um dos padrões.
+                            // Se for um título padrão, a locationPart de handleDateChange é mantida.
+                            const defaultTitles = ['ESCALA ORDINÁRIA', 'ESCALA FIM DE SEMANA/FERIADO', 'ESCALA EXTRAORDINÁRIA - VIAGEM'];
+                            if (!defaultTitles.includes(data.title)) {
+                                locationPart.textContent = ''; // Limpa a localização, pois o título salvo é completo e customizado
+                            }
                         }
-                        // Se não há título salvo, o título padrão de handleDateChange é mantido
+                        // Se não há título salvo (data.title é null), o título padrão de handleDateChange é mantido
                         
                         scheduleData = data?.schedule || {};
                     }
