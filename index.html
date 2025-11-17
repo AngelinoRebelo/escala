@@ -517,26 +517,43 @@
                 
                 calendarRows.forEach((row, rowIndex) => {
                     const cells = row.querySelectorAll('td');
+                    const printRow = document.createElement('tr');
                     
-                    // CORREÇÃO: Verificar se é uma linha válida com 8 células
+                    let dayCellStartIndex = 0; // Default to 0 for 7-cell rows
+
+                    // Se a linha tem 8 células, é a primeira linha de um mês
                     if (cells.length === 8) {
-                        const printRow = document.createElement('tr');
-                        
-                        // CORREÇÃO: Célula do mês - pegar texto diretamente
                         const monthCell = document.createElement('td');
                         monthCell.className = 'print-month-cell';
                         monthCell.textContent = cells[0].textContent || '';
-                        printRow.appendChild(monthCell);
                         
-                        // CORREÇÃO: Processar cada dia da semana (células 1-7)
-                        for (let i = 1; i < cells.length; i++) {
-                            const dayCell = cells[i];
-                            const printDayCell = document.createElement('td');
-                            
-                            // CORREÇÃO: Verificar se a célula tem conteúdo
-                            const dateLabel = dayCell.querySelector('.date-label');
-                            
-                            if (dateLabel && dateLabel.textContent.trim() !== '') {
+                        // Obter o rowspan da célula original e aplicar
+                        const originalRowSpan = cells[0].rowSpan;
+                        if (originalRowSpan > 1) {
+                            monthCell.rowSpan = originalRowSpan;
+                        }
+
+                        printRow.appendChild(monthCell);
+                        dayCellStartIndex = 1; // Começa a processar dias da célula 1
+                    } 
+                    // Se a linha tem 7 células, é uma linha subsequente
+                    else if (cells.length === 7) {
+                        dayCellStartIndex = 0; // Começa a processar dias da célula 0
+                    } 
+                    // Ignora linhas que não sejam de calendário (ex: vazias)
+                    else {
+                        return; // Pula esta iteração
+                    }
+
+                    // CORREÇÃO: Processar cada dia da semana (células 1-7 ou 0-6)
+                    for (let i = dayCellStartIndex; i < cells.length; i++) {
+                        const dayCell = cells[i];
+                        const printDayCell = document.createElement('td');
+                        
+                        // CORREÇÃO: Verificar se a célula tem conteúdo
+                        const dateLabel = dayCell.querySelector('.date-label');
+                        
+                        if (dateLabel && dateLabel.textContent.trim() !== '') {
                                 const dateText = dateLabel.textContent;
                                 const agentInputs = dayCell.querySelectorAll('.agent-name-input');
                                 const agentNames = [];
@@ -571,8 +588,8 @@
                         }
                         
                         printBody.appendChild(printRow);
-                    }
-                });
+                
+            });
                 
                 // CORREÇÃO: Renderizar resumo corretamente
                 const sortedAgents = Object.keys(agentCounts).sort();
