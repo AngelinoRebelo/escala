@@ -330,13 +330,13 @@
 
         <!-- Conteúdo da Aba "Escala Atual" -->
         <div id="current-scale-view" class="tab-content">
-            <div id="print-layout-container" class="flex flex-col lg:flex-row w-full gap-6">
+            <div id="print-layout-container" class="flex flex-col w-full gap-6">
                 <!-- Calendário da Escala -->
                 <div class="flex-grow table-container">
                     <table class="w-full border-collapse text-center">
                         <thead>
                             <tr class="bg-slate-900 text-white uppercase text-xs sm:text-sm tracking-wider">
-                                <th class="p-3 w-12 rounded-tl-lg font-bold">Mês</th>
+                                <th class="p-3 w-10 rounded-tl-lg font-bold">Mês</th>
                                 <th class="p-3 font-bold">SEGUNDA</th>
                                 <th class="p-3 font-bold">TERÇA</th>
                                 <th class="p-3 font-bold">QUARTA</th>
@@ -350,7 +350,7 @@
                     </table>
                 </div>
                 <!-- Resumo de Plantões -->
-                <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
+                <aside class="w-full mt-6 flex-shrink-0 summary-container">
                     <div class="bg-slate-100 p-4 rounded-lg h-full">
                         <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
                         <table class="w-full mt-4 text-sm">
@@ -833,19 +833,19 @@
                     const data = docSnap.exists() ? docSnap.data() : null;
                     
                     let scheduleData;
-                    let defaultTitle;
+                    // let defaultTitle; // Removido
 
                     if (!data && scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9) {
                         scheduleData = prefilledNelsonData;
-                        editableTitlePart.textContent = 'ESCALA ORDINÁRIA - SR. NELSON';
+                        // O título principal já foi definido em handleDateChange
                     } else {
-                        defaultTitle = {
-                            'ordinaria': 'ESCALA ORDINÁRIA - DNA. MARIANA',
-                            'ordinaria_nelson': 'ESCALA ORDINÁRIA - SR. NELSON',
-                            'fimdesemana': 'ESCALA FIM DE SEMANA/FERIADO',
-                            'extraordinaria_viagem': 'ESCALA EXTRAORDINÁRIA - VIAGEM'
-                        }[scheduleType] || 'ESCALA';
-                        editableTitlePart.textContent = data?.title || defaultTitle;
+                        // Se um título customizado foi salvo, ele sobrepõe o padrão
+                        if(data?.title) {
+                            editableTitlePart.textContent = data.title;
+                            locationPart.textContent = ''; // Limpa a localização, pois o título salvo é completo
+                        }
+                        // Se não há título salvo, o título padrão de handleDateChange é mantido
+                        
                         scheduleData = data?.schedule || {};
                     }
 
@@ -866,9 +866,11 @@
                     
                     updateSummary();
                     
-                    if (!data && !(scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9)) {
+                    // Lógica de fallback de título removida, pois handleDateChange cuida disso
+                    /* if (!data && !(scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9)) {
                         editableTitlePart.textContent = defaultTitle;
                     }
+                    */
 
                 } catch(error) {
                     console.error("Error loading schedule data:", error);
@@ -1086,18 +1088,29 @@
                 const year = parseInt(yearSelect.value);
                 const month = parseInt(monthSelect.value);
                 const scheduleType = scheduleTypeSelect.value;
+                
+                // CORREÇÃO: Define o título e a localização com base na seleção
+                if (scheduleType === 'ordinaria') {
+                    editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
+                    locationPart.textContent = ' - DNA. MARIANA';
+                } else if (scheduleType === 'ordinaria_nelson') {
+                    editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
+                    locationPart.textContent = ' - SR. NELSON';
+                } else if (scheduleType === 'fimdesemana') {
+                    editableTitlePart.textContent = 'ESCALA FIM DE SEMANA/FERIADO';
+                    locationPart.textContent = '';
+                } else if (scheduleType === 'extraordinaria_viagem') {
+                    editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA - VIAGEM';
+                    locationPart.textContent = '';
+                } else {
+                    editableTitlePart.textContent = 'ESCALA';
+                    locationPart.textContent = '';
+                }
+                
                 generateCalendar(year, month, scheduleType);
                 updateTitle(year, month);
                 
-                if (scheduleType === 'ordinaria') {
-                    locationPart.textContent = ' - DNA. MARIANA';
-                } else if (scheduleType === 'ordinaria_nelson') {
-                    locationPart.textContent = ' - SR. NELSON';
-                } else if (scheduleType === 'extraordinaria_viagem') {
-                    locationPart.textContent = ' - VIAGEM';
-                } else {
-                    locationPart.textContent = '';
-                }
+                // Lógica antiga de 'locationPart' removida daqui
             };
 
             const initialize = () => {
