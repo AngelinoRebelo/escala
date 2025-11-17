@@ -69,88 +69,155 @@
         .static-agent-name {
             display: none;
         }
+        
+        /* --- NOVAS REGRAS DE IMPRESSÃO APLICADAS DO ESCALA-DE-CULTOS --- */
         @media print {
-            /* --- Configurações Gerais de Impressão --- */
-            body { 
-                background-color: #fff !important; 
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                font-size: 9pt !important; /* Reduz o tamanho da fonte base */
-            }
-            main { 
-                max-width: none !important; 
-                padding: 0 !important; 
-                margin: 0 !important; 
-                box-shadow: none !important; 
-                border: none !important; 
+            /* ESCONDE COMPLETAMENTE elementos da UI */
+            #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button,
+            #login-modal, .tab-content, .print-hidden-controls, #header, .title-container, .agent-name-input,
+            .date-label, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-900, .bg-indigo-500, .bg-blue-500 {
+                display: none !important;
             }
             
-            /* --- Esconder Elementos da UI --- */
-            #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button { display: none !important; }
-            .tab-content { display: none !important; }
-            #current-scale-view { display: block !important; }
-            
-            /* --- Layout da Escala e Resumo --- */
-            .title-container { justify-content: center !important; margin-bottom: 0.5rem !important; }
-            #print-layout-container { 
-                display: flex !important; 
-                flex-direction: column !important; /* Resumo sempre abaixo */
-                width: 100% !important; 
+            /* Mostra apenas o conteúdo de impressão */
+            #print-view {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
-            .table-container, .summary-container { 
-                width: 100% !important; 
-                margin-top: 1rem !important; 
-                margin-left: 0 !important; 
-                flex-shrink: 0 !important;
+            
+            /* Remove tudo do corpo e mostra apenas a impressão */
+            body, main {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                font-size: 9pt !important;
+                line-height: 1.1;
+            }
+            
+            /* Configuração da página - A4 LANDSCAPE */
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
+            }
+            
+            /* Garante cores legíveis */
+            body {
+                color: black !important;
+                background: white !important;
+            }
+            
+            /* Estilos da tabela de impressão */
+            #print-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                border: 2px solid #1e40af !important;
+                table-layout: fixed;
+                font-size: 8pt !important;
+            }
+            
+            #print-table td, #print-table th {
+                border: 1px solid #94a3b8 !important;
+                padding: 4px 3px !important;
+                text-align: center !important;
+                vertical-align: middle !important;
+                line-height: 1.1 !important;
+            }
+            
+            #print-table th {
+                background: #3b82f6 !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 9pt !important;
+            }
+            
+            .week-header {
+                background: #1e40af !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 10pt !important;
+            }
+            
+            .print-title-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 14pt !important;
+                padding: 10px !important;
+                border: 2px solid #1e3a8a !important;
+                margin-bottom: 8px !important;
+                border-radius: 4px !important;
+                position: relative;
             }
 
-            /* --- Estilos da Tabela (Mais Compacta) --- */
-            table { border-collapse: collapse !important; width: 100% !important; }
-            td, th {
-                border: 1px solid #94a3b8 !important; /* slate-400 */
-                height: 3.5rem !important; /* Altura da célula reduzida */
-                padding: 2px !important;
-                font-size: 0.8rem !important;
-            }
-            th { font-size: 0.7rem !important; padding: 4px 2px !important; }
-            
-            /* --- Rótulos de Data (Mais Compactos) --- */
-            .date-label {
-                font-size: 0.9rem !important; /* Tamanho da data reduzido */
-                padding: 2px 0 !important;
-                margin-bottom: 2px !important;
-                color: #fff !important;
+            .print-title {
+                margin: 0 !important;
             }
 
-            /* --- Nomes dos Agentes (Mostrar) --- */
-            select.agent-name-input { display:none !important; }
-             .static-agent-name { 
+            /* Logo na impressão */
+            .print-logo {
+                height: 35px;
+                position: absolute;
+                left: 20px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            
+            .month-year-reference {
+                background: #f8fafc !important;
+                color: #1e40af !important;
+                font-weight: bold !important;
+                font-size: 11pt !important;
+                text-align: center !important;
+                padding: 6px !important;
+                border: 1px solid #cbd5e1 !important;
+                margin-bottom: 5px !important;
+                border-radius: 3px !important;
+            }
+            
+            /* Estilo para informações adicionais */
+            .info-text {
+                font-size: 7pt !important;
+                font-style: italic;
+                color: #64748b !important;
+                margin-top: 2px !important;
+            }
+            
+            /* Zebrado nas linhas */
+            #print-table tr:nth-child(even) {
+                background: #f8fafc !important;
+            }
+            
+            #print-table tr:nth-child(odd) {
+                background: #ffffff !important;
+            }
+            
+            /* Mostrar nomes estáticos na impressão */
+            .static-agent-name { 
                 display: block !important;
                 font-weight: 700 !important;
-                font-size: 0.75rem !important; /* Fonte do nome reduzida */
+                font-size: 0.75rem !important;
                 text-align: center !important;
                 padding: 1px !important;
-                color: #000 !important; /* Garantir que o texto seja preto */
+                color: #000 !important;
             }
             
-            /* --- Cores de Fundo (Manter) --- */
-            .bg-slate-900 { background-color: #0f172a !important; color: #fff !important; }
-            .bg-white { background-color: #fff !important; }
-            .bg-indigo-500 { background-color: #6366f1 !important; }
-            .bg-blue-500 { background-color: #3b82f6 !important; }
-            .bg-slate-50 { background-color: #f8fafc !important; }
-            .bg-slate-100 { background-color: #f1f5f9 !important; }
-            .bg-slate-200 { background-color: #e2e8f0 !important; }
-            .text-white { color: #fff !important; }
-            .text-slate-900 { color: #0f172a !important; }
-
-            /* --- Tabela de Resumo --- */
-            .summary-table-header { border-bottom: 1px solid #ccc !important; }
+            /* Estilos específicos para a tabela de resumo na impressão */
+            .summary-container {
+                display: block !important;
+                width: 100% !important;
+                margin-top: 1rem !important;
+            }
+            
+            .summary-table-header { 
+                border-bottom: 1px solid #ccc !important;
+            }
         }
-        
-        /* Remover regras de orientação específicas, pois agora é sempre coluna */
-         /* @media print and (orientation: landscape) { ... } */
-         /* @media print and (orientation: portrait) { ... } */
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -272,6 +339,45 @@
         
     </main>
 
+    <!-- View de Impressão (oculta normalmente) - NOVA SEÇÃO ADICIONADA -->
+    <div id="print-view" class="hidden">
+        <!-- Logo e Título -->
+        <div class="print-title-container">
+            <div class="print-title" id="print-title-text">ESCALA DE TRABALHO</div>
+        </div>
+        <div id="month-year-reference" class="month-year-reference"></div>
+        <table id="print-table" class="w-full">
+            <thead>
+                <tr class="week-header">
+                    <th>Mês</th>
+                    <th>SEGUNDA</th>
+                    <th>TERÇA</th>
+                    <th>QUARTA</th>
+                    <th>QUINTA</th>
+                    <th>SEXTA</th>
+                    <th>SÁBADO</th>
+                    <th>DOMINGO</th>
+                </tr>
+            </thead>
+            <tbody id="print-body"></tbody>
+        </table>
+        <!-- Resumo na impressão -->
+        <div class="summary-container mt-4">
+            <div class="bg-slate-100 p-4 rounded-lg">
+                <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
+                <table class="w-full mt-4 text-sm">
+                    <thead class="summary-table-header">
+                        <tr class="text-left">
+                            <th class="pb-2 font-bold text-slate-600">Agente</th>
+                            <th class="pb-2 font-bold text-slate-600 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="print-summary-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -312,7 +418,12 @@
             const pastScalesListFds = document.getElementById('past-scales-list-fds');
             const pastScalesListViagem = document.getElementById('past-scales-list-viagem');
             
-
+            // Elementos da view de impressão
+            const printView = document.getElementById('print-view');
+            const printBody = document.getElementById('print-body');
+            const printSummaryBody = document.getElementById('print-summary-body');
+            const monthYearReference = document.getElementById('month-year-reference');
+            const printTitleText = document.getElementById('print-title-text');
 
             let sessionTimeoutId = null;
             const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
@@ -335,6 +446,136 @@
                 "2025-11-12": ["LISBOA", "PENNA"], "2025-11-13": ["PENNA", "THEODORO"], "2025-11-14": ["LISBOA", "MALCHER"],
                 "2025-11-15": ["PENNA", "EDUARDO"]
             };
+
+            // --- FUNÇÃO DE IMPRESSÃO ADICIONADA ---
+            function prepareForPrint() {
+                console.log("🖨️ Preparando para impressão...");
+                
+                // Atualizar referência do mês e ano
+                const month = parseInt(monthSelect.value);
+                const year = parseInt(yearSelect.value);
+                const scheduleType = scheduleTypeSelect.value;
+                
+                // Atualizar título da impressão
+                printTitleText.textContent = editableTitlePart.textContent;
+                monthYearReference.textContent = `${PT_BR_MONTHS[month]} DE ${year}`;
+                
+                // Limpar conteúdo anterior
+                printBody.innerHTML = '';
+                printSummaryBody.innerHTML = '';
+                
+                // Coletar dados da tabela principal
+                const agentCounts = {};
+                const weeksData = [];
+                
+                // Processar cada semana
+                calendarBody.querySelectorAll('tr').forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length === 8) { // Linha com dados de semana
+                        const weekData = {
+                            monthCell: cells[0]?.textContent || '',
+                            days: []
+                        };
+                        
+                        for (let i = 1; i < cells.length; i++) {
+                            const dayCell = cells[i];
+                            const dateLabel = dayCell.querySelector('.date-label');
+                            const agentInputs = dayCell.querySelectorAll('.agent-name-input');
+                            
+                            if (dateLabel) {
+                                const dayData = {
+                                    date: dateLabel.textContent,
+                                    agents: []
+                                };
+                                
+                                agentInputs.forEach(input => {
+                                    const agentName = input.value;
+                                    dayData.agents.push(agentName);
+                                    
+                                    // Contar para o resumo
+                                    if (agentName && agentName !== 'ESCALA') {
+                                        agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
+                                    }
+                                });
+                                
+                                weekData.days.push(dayData);
+                            } else {
+                                weekData.days.push(null);
+                            }
+                        }
+                        
+                        weeksData.push(weekData);
+                    }
+                });
+                
+                // Renderizar na view de impressão
+                weeksData.forEach(week => {
+                    const weekRow = document.createElement('tr');
+                    
+                    // Célula do mês
+                    const monthCell = document.createElement('td');
+                    monthCell.className = 'font-bold text-sm text-white p-2 bg-indigo-500';
+                    monthCell.style.writingMode = 'vertical-rl';
+                    monthCell.style.textOrientation = 'mixed';
+                    monthCell.style.transform = 'rotate(180deg)';
+                    monthCell.textContent = week.monthCell;
+                    weekRow.appendChild(monthCell);
+                    
+                    // Células dos dias
+                    week.days.forEach(day => {
+                        const dayCell = document.createElement('td');
+                        dayCell.className = 'border-2 border-slate-300 p-1 align-top';
+                        
+                        if (day) {
+                            dayCell.innerHTML = `
+                                <div class="mb-1"><span class="date-label block w-full bg-indigo-500 text-white text-base font-black py-1 rounded-md shadow-sm">${day.date}</span></div>
+                                <div class="flex flex-col justify-start items-center space-y-1 px-2">
+                                    ${day.agents.map(agent => `
+                                        <div class="static-agent-name">${agent || ''}</div>
+                                    `).join('')}
+                                </div>`;
+                        } else {
+                            dayCell.innerHTML = '&nbsp;';
+                        }
+                        weekRow.appendChild(dayCell);
+                    });
+                    
+                    printBody.appendChild(weekRow);
+                });
+                
+                // Renderizar resumo na impressão
+                const sortedAgents = Object.keys(agentCounts).sort();
+                if (sortedAgents.length === 0) {
+                    printSummaryBody.innerHTML = `<tr><td colspan="2" class="pt-3 text-slate-500 text-center">-</td></tr>`;
+                } else {
+                    sortedAgents.forEach(name => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td class="py-1.5 font-semibold text-slate-800">${name}</td><td class="py-1.5 font-bold text-indigo-600 text-right">${agentCounts[name]}</td>`;
+                        printSummaryBody.appendChild(row);
+                    });
+                }
+                
+                console.log("✅ Preparação para impressão concluída");
+            }
+
+            function handlePrint() {
+                console.log("🚀 Iniciando impressão...");
+                
+                prepareForPrint();
+                
+                // Mostrar a view de impressão
+                printView.classList.remove('hidden');
+                
+                // Pequeno delay para garantir que o DOM foi atualizado
+                setTimeout(() => {
+                    window.print();
+                    
+                    // Restaurar após impressão
+                    setTimeout(() => {
+                        printView.classList.add('hidden');
+                    }, 100);
+                }, 300);
+            }
 
             const enableEditing = () => {
                 editableTitlePart.contentEditable = "true";
@@ -426,28 +667,8 @@
                 });
             });
 
-            printButton.addEventListener('click', () => {
-                const staticNames = [];
-                document.querySelectorAll('.agent-name-input').forEach(select => {
-                    if (select.value) {
-                        const nameDiv = document.createElement('div');
-                        nameDiv.className = 'static-agent-name';
-                        nameDiv.textContent = select.value;
-                        select.parentNode.appendChild(nameDiv);
-                        staticNames.push(nameDiv); 
-                    }
-                });
-
-                const afterPrintHandler = () => {
-                    staticNames.forEach(el => el.remove());
-                    window.removeEventListener('afterprint', afterPrintHandler);
-                };
-                window.addEventListener('afterprint', afterPrintHandler);
-                
-                requestAnimationFrame(() => {
-                    window.print();
-                });
-            });
+            // Atualizar o evento de impressão para usar a nova função
+            printButton.addEventListener('click', handlePrint);
 
             const updateSummary = () => {
                 const agentCounts = {};
@@ -931,4 +1152,3 @@
     </script>
 </body>
 </html>
-
