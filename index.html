@@ -133,12 +133,17 @@
                 height: auto !important;
             }
             
+            /* MODIFICADO: Estilo genérico para TH */
             #print-table th {
-                background: #1e40af !important;
                 color: white !important;
                 font-weight: bold !important;
                 font-size: 10pt !important;
                 padding: 8px 4px !important;
+            }
+            
+            /* MODIFICADO: Estilo específico para o cabeçalho da lista */
+            #print-table .week-header th {
+                 background: #1e40af !important;
             }
             
             .print-title-container {
@@ -174,15 +179,17 @@
                 display: block !important;
             }
             
+            /* MODIFICADO: .static-agent-name agora é uma célula de tabela */
             .static-agent-name { 
-                display: block !important;
+                display: table-cell !important; /* MUDADO DE 'block' */
                 font-weight: 700 !important;
                 font-size: 9pt !important;
                 text-align: center !important;
                 padding: 3px 2px !important;
                 color: #000 !important;
-                margin: 2px 0 !important;
+                margin: 0 !important; /* Removido margin */
                 background: transparent !important;
+                vertical-align: middle !important;
             }
             
             .agent-names-container {
@@ -204,6 +211,7 @@
                 margin-bottom: 6px !important;
             }
             
+            /* Esta classe não é mais usada no layout de lista, mas mantida por segurança */
             .print-month-cell {
                 background: #1e40af !important;
                 color: white !important;
@@ -342,7 +350,7 @@
                     </table>
                 </div>
                 <!-- Resumo de Plantões -->
-                <aside class="w-full lg:w-1f/4 flex-shrink-0 summary-container">
+                <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
                     <div class="bg-slate-100 p-4 rounded-lg h-full">
                         <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
                         <table class="w-full mt-4 text-sm">
@@ -483,19 +491,19 @@
                 "2025-11-15": ["PENNA", "EDUARDO"]
             };
 
-            // --- FUNÇÃO DE IMPRESSÃO (sem alterações, mas CSS corrigido) ---
+            // --- FUNÇÃO DE IMPRESSÃO (REESCRITA PARA LAYOUT DE LISTA) ---
             function prepareForPrint() {
-                console.log("🖨️ Preparando para impressão...");
+                console.log("🖨️ Preparando para impressão (Layout de LISTA)...");
+
+                // Referências aos elementos da UI
+                const printBody = document.getElementById('print-body');
+                const printSummaryBody = document.getElementById('print-summary-body');
+                const printTable = document.getElementById('print-table'); // Referência à tabela PAI
                 
-                // Atualizar referência do mês e ano CORRETAMENTE
+                // Atualizar títulos
                 const month = parseInt(monthSelect.value);
                 const year = parseInt(yearSelect.value);
-                
-                console.log("Mês/Ano para impressão:", month, year);
-                
-                // CORREÇÃO: Usar o título correto
                 printTitleText.textContent = editableTitlePart.textContent;
-                // CORREÇÃO: Formatar corretamente a referência do mês/ano
                 monthYearReference.textContent = `${PT_BR_MONTHS[month]} DE ${year}`;
                 
                 // Limpar conteúdo anterior
@@ -503,79 +511,71 @@
                 printSummaryBody.innerHTML = '';
                 
                 const agentCounts = {};
-                
-                // CORREÇÃO: Processar CADA LINHA da tabela principal
-                const calendarRows = calendarBody.querySelectorAll('tr');
-                
-                calendarRows.forEach((row, rowIndex) => {
-                    const cells = row.querySelectorAll('td');
-                    
-                    // CORREÇÃO: Verificar se é uma linha válida com 8 células
-                    if (cells.length === 8) {
-                        const printRow = document.createElement('tr');
-                        
-                        // CORREÇÃO: Célula do mês - pegar texto diretamente
-                        const monthCell = document.createElement('td');
-                        monthCell.className = 'print-month-cell';
-                        monthCell.textContent = cells[0].textContent || '';
-                        printRow.appendChild(monthCell);
-                        
-                        // CORREÇÃO: Processar cada dia da semana (células 1-7)
-                        for (let i = 1; i < cells.length; i++) {
-                            const dayCell = cells[i];
-                            const printDayCell = document.createElement('td');
-                            
-                            // CORREÇÃO: Verificar se a célula tem conteúdo
-                            const dateLabel = dayCell.querySelector('.date-label');
-                            
-                            if (dateLabel && dateLabel.textContent.trim() !== '') {
-                                const dateText = dateLabel.textContent;
-                                const agentInputs = dayCell.querySelectorAll('.agent-name-input');
-                                const agentNames = [];
-                                
-                                // CORREÇÃO: Coletar nomes dos agentes
-                                agentInputs.forEach(input => {
-                                    const agentName = input.value.trim();
-                                    if (agentName && agentName !== '') {
-                                        agentNames.push(agentName);
-                                        // Contar para o resumo
-                                        if (agentName !== 'ESCALA') {
-                                            agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
-                                        }
-                                    }
-                                });
-                                
-                                // CORREÇÃO: Construir HTML corretamente
-                                printDayCell.innerHTML = `
-                                    <div class="print-date-label">${dateText}</div>
-                                    <div class="agent-names-container">
-                                        ${agentNames.map(name => 
-                                            `<div class="static-agent-name">${name}</div>`
-                                        ).join('')}
-                                    </div>
-                                `;
-                            } else {
-                                // CORREÇÃO: Célula vazia
-                                printDayCell.innerHTML = '&nbsp;';
-                            }
-                            
-                            printRow.appendChild(printDayCell);
+                const dailyData = {}; // Objeto para agrupar por data
+
+                // 1. Coletar todos os dados dos inputs
+                calendarBody.querySelectorAll('.agent-name-input').forEach(input => {
+                    const date = input.dataset.date;
+                    const index = parseInt(input.dataset.index);
+                    const agentName = input.value.trim();
+
+                    // Apenas processa se tiver um nome e não for "ESCALA"
+                    if (agentName && agentName !== '' && agentName !== 'ESCALA') {
+                        if (!dailyData[date]) {
+                            // Adiciona T00:00:00 para evitar problemas de fuso horário
+                            dailyData[date] = { date: new Date(date + 'T00:00:00'), agents: ['', ''] };
                         }
-                        
-                        printBody.appendChild(printRow);
+                        dailyData[date].agents[index] = agentName;
+
+                        // Contar para o resumo
+                        agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
                     }
                 });
+
+                // 2. Obter e ordenar as datas
+                const sortedDates = Object.keys(dailyData).sort();
+
+                // 3. (Re)Criar o cabeçalho da tabela de impressão
+                if (printTable.tHead) {
+                    printTable.tHead.innerHTML = '';
+                } else {
+                    printTable.createTHead();
+                }
                 
-                // CORREÇÃO: Renderizar resumo corretamente
+                const headerRow = printTable.tHead.insertRow(0);
+                headerRow.className = 'week-header'; // Reutilizando a classe de estilo
+                headerRow.innerHTML = `
+                    <th style="width: 20%; text-align: left; padding-left: 10px;">Data</th>
+                    <th style="width: 25%; text-align: left; padding-left: 10px;">Dia da Semana</th>
+                    <th style="width: 27.5%;">Agente Turno 1</th>
+                    <th style="width: 27.5%;">Agente Turno 2</th>
+                `;
+
+                // 4. Popular o corpo da tabela de impressão (layout de lista)
+                const dayNames = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+                
+                sortedDates.forEach(dateKey => {
+                    const data = dailyData[dateKey];
+                    const dateObj = data.date;
+                    // Formata a data e o dia da semana
+                    const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    const dayOfWeek = dayNames[dateObj.getDay()];
+
+                    const row = printBody.insertRow(); // Adiciona ao <tbody> existente
+                    // Aplica estilos para alinhar à esquerda nas primeiras colunas
+                    row.innerHTML = `
+                        <td style="font-weight: bold; text-align: left; padding-left: 10px; vertical-align: middle;">${formattedDate}</td>
+                        <td style="text-align: left; padding-left: 10px; vertical-align: middle;">${dayOfWeek}</td>
+                        <td class="static-agent-name">${data.agents[0] || '---'}</td>
+                        <td class="static-agent-name">${data.agents[1] || '---'}</td>
+                    `;
+                });
+
+                // 5. Popular o resumo (código existente está bom)
                 const sortedAgents = Object.keys(agentCounts).sort();
                 
                 if (sortedAgents.length === 0) {
-                    printSummaryBody.innerHTML = `
-                        <tr>
-                            <td colspan="2" style="text-align: center; padding: 12px; color: #64748b; font-style: italic;">
-                                Nenhum plantão registrado
-                            </td>
-                        </tr>`;
+                    printSummaryBody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding: 12px; color: #64748b; font-style: italic;">Nenhum plantão registrado</td></tr>`;
                 } else {
                     sortedAgents.forEach(name => {
                         const row = document.createElement('tr');
@@ -587,8 +587,7 @@
                     });
                 }
                 
-                console.log("✅ Preparação para impressão concluída. Total de agentes:", Object.keys(agentCounts).length);
-                console.log("Agentes encontrados:", agentCounts);
+                console.log("✅ Preparação para impressão (LISTA) concluída.");
             }
 
             function handlePrint() {
