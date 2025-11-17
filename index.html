@@ -70,47 +70,46 @@
             display: none;
         }
         
-        /* --- REGRAS DE IMPRESSÃO TOTALMENTE CORRIGIDAS --- */
+        /* --- REGRAS DE IMPRESSÃO CORRIGIDAS --- */
         @media print {
-            /* ESCONDE COMPLETAMENTE elementos da UI */
-            #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button,
-            #login-modal, .tab-content, .print-hidden-controls, #header, .title-container, .agent-name-input,
-            .date-label, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-900, .bg-indigo-500, .bg-blue-500,
-            .summary-container {
-                display: none !important;
+            /* 1. ESCONDE TUDO */
+            body * {
+                visibility: hidden !important;
+            }
+
+            /* 2. MOSTRA APENAS A VIEW DE IMPRESSÃO E SEUS FILHOS */
+            #print-view, #print-view * {
+                visibility: visible !important;
             }
             
-            /* Mostra apenas o conteúdo de impressão */
+            /* 3. COLOCA A VIEW DE IMPRESSÃO NA RAIZ VISUAL */
             #print-view {
-                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                display: block !important; /* Garantir que está visível */
             }
-            
-            /* Remove tudo do corpo e mostra apenas a impressão */
-            body, main, html {
+
+            /* 4. ESTILOS GERAIS DA PÁGINA */
+            body, html {
                 margin: 0 !important;
                 padding: 0 !important;
-                width: 100% !important;
                 background: white !important;
                 font-size: 10pt !important;
                 line-height: 1.2;
                 color: black !important;
-                visibility: visible !important;
             }
             
-            /* Configuração da página - A4 LANDSCAPE */
+            /* 5. CONFIGURAÇÃO DA PÁGINA */
             @page {
                 size: A4 landscape;
                 margin: 8mm;
             }
             
-            /* CORREÇÃO: Garantir que todos os elementos de impressão sejam visíveis */
-            #print-view,
-            #print-view * {
-                visibility: visible !important;
-            }
+            /* --- ESTILOS DA TABELA DE IMPRESSÃO (Mantidos) --- */
             
             #print-table {
                 width: 100% !important;
@@ -171,7 +170,6 @@
                 display: block !important;
             }
             
-            /* CORREÇÃO: Garantir que nomes estáticos sejam visíveis */
             .static-agent-name { 
                 display: block !important;
                 font-weight: 700 !important;
@@ -239,12 +237,10 @@
                 border-bottom: 1px solid #d1d5db !important;
             }
             
-            /* CORREÇÃO: Garantir que células vazias tenham altura mínima */
             #print-table td:empty {
                 min-height: 60px;
             }
             
-            /* CORREÇÃO: Evitar quebra de página dentro das linhas */
             #print-table tr {
                 page-break-inside: avoid;
                 page-break-after: auto;
@@ -377,7 +373,7 @@
         
     </main>
 
-    <!-- View de Impressão (oculta normalmente) - TOTALMENTE CORRIGIDA -->
+    <!-- View de Impressão (oculta normally) - CSS CORRIGIDO -->
     <div id="print-view" class="hidden">
         <!-- Logo e Título -->
         <div class="print-title-container">
@@ -483,7 +479,7 @@
                 "2025-11-15": ["PENNA", "EDUARDO"]
             };
 
-            // --- FUNÇÃO DE IMPRESSÃO COMPLETAMENTE CORRIGIDA ---
+            // --- FUNÇÃO DE IMPRESSÃO (sem alterações, mas CSS corrigido) ---
             function prepareForPrint() {
                 console.log("🖨️ Preparando para impressão...");
                 
