@@ -396,7 +396,24 @@
         <!-- NOVO WRAPPER FLEX PARA LAYOUT -->
         <div id="print-layout-wrapper" style="display: flex !important; flex-direction: row !important; width: 100% !important; gap: 12px !important; align-items: flex-start;">
             
-            <!-- Resumo na impressão (MOVIDO PARA CIMA E PARA A ESQUERDA) -->
+            <!-- Tabela principal (AGORA NA ESQUERDA) -->
+            <table id="print-table" class="w-full" style="width: 70% !important;">
+                <thead>
+                    <tr class="week-header">
+                        <th>Mês</th>
+                        <th>SEGUNDA</th>
+                        <th>TERÇA</th>
+                        <th>QUARTA</th>
+                        <th>QUINTA</th>
+                        <th>SEXTA</th>
+                        <th>SÁBADO</th>
+                        <th>DOMINGO</th>
+                    </tr>
+                </thead>
+                <tbody id="print-body"></tbody>
+            </table>
+
+            <!-- Resumo na impressão (MOVIDO DE VOLTA PARA A DIREITA) -->
             <div class="print-summary-container" style="width: 30% !important; margin-top: 0 !important;">
                 <div style="background: #f8fafc !important; padding: 12px !important; border-radius: 6px !important; border: 1px solid #e2e8f0 !important; height: 100% !important;">
                     <h2 style="font-size: 11pt !important; font-weight: bold !important; color: #1e293b !important; background: #e2e8f0 !important; margin: -12px -12px 12px -12px !important; padding: 8px 12px !important; border-radius: 6px 6px 0 0 !important; text-align: center !important; text-transform: uppercase !important; letter-spacing: 0.05em !important;">
@@ -413,17 +430,6 @@
                     </table>
                 </div>
             </div>
-
-            <!-- Tabela principal (AGORA NA DIREITA) -->
-            <table id="print-table" class="w-full" style="width: 70% !important;">
-                <thead>
-                    <tr class="week-header">
-                        <th>Mês</th>
-                        <th>DOMINGO</th>
-                    </tr>
-                </thead>
-                <tbody id="print-body"></tbody>
-            </table>
         
         </div> <!-- Fim do print-layout-wrapper -->
     </div>
