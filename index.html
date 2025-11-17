@@ -509,8 +509,11 @@
                 
                 console.log("Mês/Ano para impressão:", month, year);
                 
-                // CORREÇÃO: Usar o título correto
-                printTitleText.textContent = editableTitlePart.textContent;
+                // CORREÇÃO: Usar o título completo (título + localização)
+                const mainTitle = editableTitlePart.textContent || '';
+                const subTitle = locationPart.textContent || '';
+                printTitleText.textContent = mainTitle + subTitle;
+
                 // CORREÇÃO: Formatar corretamente a referência do mês/ano
                 monthYearReference.textContent = `${PT_BR_MONTHS[month]} DE ${year}`;
                 
