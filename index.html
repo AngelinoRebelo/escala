@@ -343,7 +343,7 @@
                     <table class="w-full border-collapse text-center table-fixed">
                         <thead>
                             <tr class="bg-slate-900 text-white uppercase text-xs sm:text-sm tracking-wider">
-                                <th class="p-3 w-10 rounded-tl-lg font-bold">Mês</th>
+                                <th class="p-3 rounded-tl-lg font-bold" style="width: 50px;">Mês</th>
                                 <th class="p-3 font-bold">SEGUNDA</th>
                                 <th class="p-3 font-bold">TERÇA</th>
                                 <th class="p-3 font-bold">QUARTA</th>
@@ -1040,8 +1040,8 @@
                         const colorClass = monthKey === startDate.getMonth() ? 'bg-indigo-500' : 'bg-blue-500';
                         
                         const monthCell = document.createElement('td');
-                        monthCell.className = `font-bold text-sm text-white p-2 ${colorClass} w-10`;
-                        /* monthCell.style.width = '2.5rem'; */ // <-- REVERTIDO
+                        monthCell.className = `font-bold text-sm text-white p-2 ${colorClass}`;
+                        monthCell.style.width = '50px'; // <-- CORREÇÃO: Força a largura
                         monthCell.style.writingMode = 'vertical-rl';
                         monthCell.style.textOrientation = 'mixed';
                         monthCell.style.transform = 'rotate(180deg)';
