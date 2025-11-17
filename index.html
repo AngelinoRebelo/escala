@@ -148,7 +148,9 @@
             
             /* NOVO: Força a largura da primeira coluna do cabeçalho (Mês) */
             #print-table .week-header th:first-child {
-                width: 15px !important;
+                width: 10px !important;
+                padding-left: 2px !important;
+                padding-right: 2px !important;
             }
 
             .print-title-container {
@@ -225,8 +227,8 @@
                 writing-mode: vertical-rl !important;
                 text-orientation: mixed !important;
                 transform: rotate(180deg) !important;
-                padding: 8px 4px !important;
-                width: 12px !important; /* <-- Diminuído de 15px para 12px */
+                padding: 8px 2px !important; /* Diminuído o padding lateral */
+                width: 10px !important; /* <-- Diminuído de 12px para 10px */
             }
             
             .print-summary-container {
