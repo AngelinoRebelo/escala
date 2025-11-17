@@ -71,175 +71,153 @@
         }
         
         /* --- NOVAS REGRAS DE IMPRESSÃO APLICADAS DO ESCALA-DE-CULTOS --- */
-        /* --- REGRAS DE IMPRESSÃO TOTALMENTE CORRIGIDAS --- */
-@media print {
-    /* ESCONDE COMPLETAMENTE elementos da UI */
-    #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button,
-    #login-modal, .tab-content, .print-hidden-controls, #header, .title-container, .agent-name-input,
-    .date-label, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-900, .bg-indigo-500, .bg-blue-500,
-    .summary-container {
-        display: none !important;
-    }
-    
-    /* Mostra apenas o conteúdo de impressão */
-    #print-view {
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* Remove tudo do corpo e mostra apenas a impressão */
-    body, main, html {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        background: white !important;
-        font-size: 10pt !important;
-        line-height: 1.2;
-        color: black !important;
-        visibility: visible !important;
-    }
-    
-    /* Configuração da página - A4 LANDSCAPE */
-    @page {
-        size: A4 landscape;
-        margin: 8mm;
-    }
-    
-    /* CORREÇÃO: Garantir que todos os elementos de impressão sejam visíveis */
-    #print-view,
-    #print-view * {
-        visibility: visible !important;
-    }
-    
-    #print-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        border: 2px solid #1e40af !important;
-        table-layout: fixed;
-        font-size: 9pt !important;
-        page-break-inside: avoid;
-    }
-    
-    #print-table td, #print-table th {
-        border: 1px solid #374151 !important;
-        padding: 6px 4px !important;
-        text-align: center !important;
-        vertical-align: top !important;
-        line-height: 1.3 !important;
-        height: auto !important;
-    }
-    
-    #print-table th {
-        background: #1e40af !important;
-        color: white !important;
-        font-weight: bold !important;
-        font-size: 10pt !important;
-        padding: 8px 4px !important;
-    }
-    
-    .print-title-container {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
-        color: white !important;
-        font-weight: bold !important;
-        font-size: 16pt !important;
-        padding: 12px !important;
-        border: 2px solid #1e3a8a !important;
-        margin-bottom: 10px !important;
-        border-radius: 6px !important;
-        text-align: center !important;
-    }
+        @media print {
+            /* ESCONDE COMPLETAMENTE elementos da UI */
+            #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button,
+            #login-modal, .tab-content, .print-hidden-controls, #header, .title-container, .agent-name-input,
+            .date-label, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-900, .bg-indigo-500, .bg-blue-500 {
+                display: none !important;
+            }
+            
+            /* Mostra apenas o conteúdo de impressão */
+            #print-view {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            /* Remove tudo do corpo e mostra apenas a impressão */
+            body, main {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                font-size: 9pt !important;
+                line-height: 1.1;
+            }
+            
+            /* Configuração da página - A4 LANDSCAPE */
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
+            }
+            
+            /* Garante cores legíveis */
+            body {
+                color: black !important;
+                background: white !important;
+            }
+            
+            /* Estilos da tabela de impressão */
+            #print-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                border: 2px solid #1e40af !important;
+                table-layout: fixed;
+                font-size: 8pt !important;
+            }
+            
+            #print-table td, #print-table th {
+                border: 1px solid #94a3b8 !important;
+                padding: 4px 3px !important;
+                text-align: center !important;
+                vertical-align: middle !important;
+                line-height: 1.1 !important;
+            }
+            
+            #print-table th {
+                background: #3b82f6 !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 9pt !important;
+            }
+            
+            .week-header {
+                background: #1e40af !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 10pt !important;
+            }
+            
+            .print-title-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 14pt !important;
+                padding: 10px !important;
+                border: 2px solid #1e3a8a !important;
+                margin-bottom: 8px !important;
+                border-radius: 4px !important;
+                position: relative;
+            }
 
-    .print-title {
-        margin: 0 !important;
-        text-align: center !important;
-    }
+            .print-title {
+                margin: 0 !important;
+            }
 
-    .month-year-reference {
-        background: #e5e7eb !important;
-        color: #1e40af !important;
-        font-weight: bold !important;
-        font-size: 12pt !important;
-        text-align: center !important;
-        padding: 8px !important;
-        border: 1px solid #9ca3af !important;
-        margin-bottom: 8px !important;
-        border-radius: 4px !important;
-        display: block !important;
-    }
-    
-    /* CORREÇÃO: Garantir que nomes estáticos sejam visíveis */
-    .static-agent-name { 
-        display: block !important;
-        font-weight: 700 !important;
-        font-size: 9pt !important;
-        text-align: center !important;
-        padding: 3px 2px !important;
-        color: #000 !important;
-        margin: 2px 0 !important;
-        background: transparent !important;
-    }
-    
-    .agent-names-container {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 3px !important;
-        padding: 4px 0 !important;
-        min-height: 40px !important;
-    }
-    
-    .print-date-label {
-        display: block !important;
-        background: #3b82f6 !important;
-        color: white !important;
-        font-weight: bold !important;
-        font-size: 10pt !important;
-        padding: 6px 4px !important;
-        border-radius: 4px !important;
-        margin-bottom: 6px !important;
-    }
-    
-    .print-month-cell {
-        background: #1e40af !important;
-        color: white !important;
-        font-weight: bold !important;
-        font-size: 10pt !important;
-        writing-mode: vertical-rl !important;
-        text-orientation: mixed !important;
-        transform: rotate(180deg) !important;
-        padding: 8px 4px !important;
-        width: 25px !important;
-    }
-    
-    .print-summary-container {
-        display: block !important;
-        width: 100% !important;
-        margin-top: 12px !important;
-        page-break-before: avoid;
-    }
-    
-    .print-summary-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        font-size: 9pt !important;
-    }
-    
-    .print-summary-table th {
-        background: #374151 !important;
-        color: white !important;
-        padding: 6px 8px !important;
-        text-align: left !important;
-    }
-    
-    .print-summary-table td {
-        padding: 4px 8px !important;
-        border-bottom: 1px solid #d1d5db !important;
-    }
-}
+            /* Logo na impressão */
+            .print-logo {
+                height: 35px;
+                position: absolute;
+                left: 20px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            
+            .month-year-reference {
+                background: #f8fafc !important;
+                color: #1e40af !important;
+                font-weight: bold !important;
+                font-size: 11pt !important;
+                text-align: center !important;
+                padding: 6px !important;
+                border: 1px solid #cbd5e1 !important;
+                margin-bottom: 5px !important;
+                border-radius: 3px !important;
+            }
+            
+            /* Estilo para informações adicionais */
+            .info-text {
+                font-size: 7pt !important;
+                font-style: italic;
+                color: #64748b !important;
+                margin-top: 2px !important;
+            }
+            
+            /* Zebrado nas linhas */
+            #print-table tr:nth-child(even) {
+                background: #f8fafc !important;
+            }
+            
+            #print-table tr:nth-child(odd) {
+                background: #ffffff !important;
+            }
+            
+            /* Mostrar nomes estáticos na impressão */
+            .static-agent-name { 
+                display: block !important;
+                font-weight: 700 !important;
+                font-size: 0.75rem !important;
+                text-align: center !important;
+                padding: 1px !important;
+                color: #000 !important;
+            }
+            
+            /* Estilos específicos para a tabela de resumo na impressão */
+            .summary-container {
+                display: block !important;
+                width: 100% !important;
+                margin-top: 1rem !important;
+            }
+            
+            .summary-table-header { 
+                border-bottom: 1px solid #ccc !important;
+            }
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -476,135 +454,134 @@
             };
 
             // --- FUNÇÃO DE IMPRESSÃO ADICIONADA ---
-           // --- FUNÇÃO DE IMPRESSÃO COMPLETAMENTE CORRIGIDA ---
-function prepareForPrint() {
-    console.log("🖨️ Preparando para impressão...");
-    
-    // Atualizar referência do mês e ano CORRETAMENTE
-    const month = parseInt(monthSelect.value);
-    const year = parseInt(yearSelect.value);
-    
-    console.log("Mês/Ano para impressão:", month, year);
-    
-    // CORREÇÃO: Usar o título correto
-    printTitleText.textContent = editableTitlePart.textContent;
-    // CORREÇÃO: Formatar corretamente a referência do mês/ano
-    monthYearReference.textContent = `${PT_BR_MONTHS[month]} DE ${year}`;
-    
-    // Limpar conteúdo anterior
-    printBody.innerHTML = '';
-    printSummaryBody.innerHTML = '';
-    
-    const agentCounts = {};
-    
-    // CORREÇÃO: Processar CADA LINHA da tabela principal
-    const calendarRows = calendarBody.querySelectorAll('tr');
-    
-    calendarRows.forEach((row, rowIndex) => {
-        const cells = row.querySelectorAll('td');
-        
-        // CORREÇÃO: Verificar se é uma linha válida com 8 células
-        if (cells.length === 8) {
-            const printRow = document.createElement('tr');
-            
-            // CORREÇÃO: Célula do mês - pegar texto diretamente
-            const monthCell = document.createElement('td');
-            monthCell.className = 'print-month-cell';
-            monthCell.textContent = cells[0].textContent || '';
-            printRow.appendChild(monthCell);
-            
-            // CORREÇÃO: Processar cada dia da semana (células 1-7)
-            for (let i = 1; i < cells.length; i++) {
-                const dayCell = cells[i];
-                const printDayCell = document.createElement('td');
+            function prepareForPrint() {
+                console.log("🖨️ Preparando para impressão...");
                 
-                // CORREÇÃO: Verificar se a célula tem conteúdo
-                const dateLabel = dayCell.querySelector('.date-label');
+                // Atualizar referência do mês e ano
+                const month = parseInt(monthSelect.value);
+                const year = parseInt(yearSelect.value);
+                const scheduleType = scheduleTypeSelect.value;
                 
-                if (dateLabel && dateLabel.textContent.trim() !== '') {
-                    const dateText = dateLabel.textContent;
-                    const agentInputs = dayCell.querySelectorAll('.agent-name-input');
-                    const agentNames = [];
-                    
-                    // CORREÇÃO: Coletar nomes dos agentes
-                    agentInputs.forEach(input => {
-                        const agentName = input.value.trim();
-                        if (agentName && agentName !== '') {
-                            agentNames.push(agentName);
-                            // Contar para o resumo
-                            if (agentName !== 'ESCALA') {
-                                agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
+                // Atualizar título da impressão
+                printTitleText.textContent = editableTitlePart.textContent;
+                monthYearReference.textContent = `${PT_BR_MONTHS[month]} DE ${year}`;
+                
+                // Limpar conteúdo anterior
+                printBody.innerHTML = '';
+                printSummaryBody.innerHTML = '';
+                
+                // Coletar dados da tabela principal
+                const agentCounts = {};
+                const weeksData = [];
+                
+                // Processar cada semana
+                calendarBody.querySelectorAll('tr').forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length === 8) { // Linha com dados de semana
+                        const weekData = {
+                            monthCell: cells[0]?.textContent || '',
+                            days: []
+                        };
+                        
+                        for (let i = 1; i < cells.length; i++) {
+                            const dayCell = cells[i];
+                            const dateLabel = dayCell.querySelector('.date-label');
+                            const agentInputs = dayCell.querySelectorAll('.agent-name-input');
+                            
+                            if (dateLabel) {
+                                const dayData = {
+                                    date: dateLabel.textContent,
+                                    agents: []
+                                };
+                                
+                                agentInputs.forEach(input => {
+                                    const agentName = input.value;
+                                    dayData.agents.push(agentName);
+                                    
+                                    // Contar para o resumo
+                                    if (agentName && agentName !== 'ESCALA') {
+                                        agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
+                                    }
+                                });
+                                
+                                weekData.days.push(dayData);
+                            } else {
+                                weekData.days.push(null);
                             }
                         }
+                        
+                        weeksData.push(weekData);
+                    }
+                });
+                
+                // Renderizar na view de impressão
+                weeksData.forEach(week => {
+                    const weekRow = document.createElement('tr');
+                    
+                    // Célula do mês
+                    const monthCell = document.createElement('td');
+                    monthCell.className = 'font-bold text-sm text-white p-2 bg-indigo-500';
+                    monthCell.style.writingMode = 'vertical-rl';
+                    monthCell.style.textOrientation = 'mixed';
+                    monthCell.style.transform = 'rotate(180deg)';
+                    monthCell.textContent = week.monthCell;
+                    weekRow.appendChild(monthCell);
+                    
+                    // Células dos dias
+                    week.days.forEach(day => {
+                        const dayCell = document.createElement('td');
+                        dayCell.className = 'border-2 border-slate-300 p-1 align-top';
+                        
+                        if (day) {
+                            dayCell.innerHTML = `
+                                <div class="mb-1"><span class="date-label block w-full bg-indigo-500 text-white text-base font-black py-1 rounded-md shadow-sm">${day.date}</span></div>
+                                <div class="flex flex-col justify-start items-center space-y-1 px-2">
+                                    ${day.agents.map(agent => `
+                                        <div class="static-agent-name">${agent || ''}</div>
+                                    `).join('')}
+                                </div>`;
+                        } else {
+                            dayCell.innerHTML = '&nbsp;';
+                        }
+                        weekRow.appendChild(dayCell);
                     });
                     
-                    // CORREÇÃO: Construir HTML corretamente
-                    printDayCell.innerHTML = `
-                        <div class="print-date-label">${dateText}</div>
-                        <div class="agent-names-container">
-                            ${agentNames.map(name => 
-                                `<div class="static-agent-name">${name}</div>`
-                            ).join('')}
-                        </div>
-                    `;
+                    printBody.appendChild(weekRow);
+                });
+                
+                // Renderizar resumo na impressão
+                const sortedAgents = Object.keys(agentCounts).sort();
+                if (sortedAgents.length === 0) {
+                    printSummaryBody.innerHTML = `<tr><td colspan="2" class="pt-3 text-slate-500 text-center">-</td></tr>`;
                 } else {
-                    // CORREÇÃO: Célula vazia
-                    printDayCell.innerHTML = '&nbsp;';
+                    sortedAgents.forEach(name => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td class="py-1.5 font-semibold text-slate-800">${name}</td><td class="py-1.5 font-bold text-indigo-600 text-right">${agentCounts[name]}</td>`;
+                        printSummaryBody.appendChild(row);
+                    });
                 }
                 
-                printRow.appendChild(printDayCell);
+                console.log("✅ Preparação para impressão concluída");
             }
-            
-            printBody.appendChild(printRow);
-        }
-    });
 
-        function handlePrint() {
-    console.log("🚀 Iniciando impressão...");
-    
-    // Pequeno delay para garantir que o DOM esteja pronto
-    setTimeout(() => {
-        prepareForPrint();
-        
-        // Mostrar a view de impressão
-        printView.classList.remove('hidden');
-        
-        // Delay para garantir que o DOM foi atualizado
-        setTimeout(() => {
-            window.print();
-            
-            // Restaurar após impressão
-            setTimeout(() => {
-                printView.classList.add('hidden');
-            }, 100);
-        }, 300);
-    }, 100);
-}
-    
-    // CORREÇÃO: Renderizar resumo corretamente
-    const sortedAgents = Object.keys(agentCounts).sort();
-    
-    if (sortedAgents.length === 0) {
-        printSummaryBody.innerHTML = `
-            <tr>
-                <td colspan="2" style="text-align: center; padding: 12px; color: #64748b; font-style: italic;">
-                    Nenhum plantão registrado
-                </td>
-            </tr>`;
-    } else {
-        sortedAgents.forEach(name => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td style="font-weight: 600; color: #1e293b;">${name}</td>
-                <td style="font-weight: bold; color: #1e40af; text-align: right;">${agentCounts[name]}</td>
-            `;
-            printSummaryBody.appendChild(row);
-        });
-    }
-    
-    console.log("✅ Preparação para impressão concluída. Total de agentes:", Object.keys(agentCounts).length);
-    console.log("Agentes encontrados:", agentCounts);
-}
+            function handlePrint() {
+                console.log("🚀 Iniciando impressão...");
+                
+                prepareForPrint();
+                
+                // Mostrar a view de impressão
+                printView.classList.remove('hidden');
+                
+                // Pequeno delay para garantir que o DOM foi atualizado
+                setTimeout(() => {
+                    window.print();
+                    
+                    // Restaurar após impressão
+                    setTimeout(() => {
+                        printView.classList.add('hidden');
+                    }, 100);
+                }, 300);
+            }
 
             const enableEditing = () => {
                 editableTitlePart.contentEditable = "true";
