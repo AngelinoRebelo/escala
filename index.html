@@ -70,12 +70,13 @@
             display: none;
         }
         
-        /* --- NOVAS REGRAS DE IMPRESSÃO APLICADAS DO ESCALA-DE-CULTOS --- */
+        /* --- REGRAS DE IMPRESSÃO TOTALMENTE CORRIGIDAS --- */
         @media print {
             /* ESCONDE COMPLETAMENTE elementos da UI */
             #controls-header, #print-button-container, #tabs-nav, #save-button, #login-button, #logout-button,
             #login-modal, .tab-content, .print-hidden-controls, #header, .title-container, .agent-name-input,
-            .date-label, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-900, .bg-indigo-500, .bg-blue-500 {
+            .date-label, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-900, .bg-indigo-500, .bg-blue-500,
+            .summary-container {
                 display: none !important;
             }
             
@@ -88,134 +89,165 @@
             }
             
             /* Remove tudo do corpo e mostra apenas a impressão */
-            body, main {
+            body, main, html {
                 margin: 0 !important;
                 padding: 0 !important;
                 width: 100% !important;
                 background: white !important;
-                font-size: 9pt !important;
-                line-height: 1.1;
+                font-size: 10pt !important;
+                line-height: 1.2;
+                color: black !important;
+                visibility: visible !important;
             }
             
             /* Configuração da página - A4 LANDSCAPE */
             @page {
                 size: A4 landscape;
-                margin: 5mm;
+                margin: 8mm;
             }
             
-            /* Garante cores legíveis */
-            body {
-                color: black !important;
-                background: white !important;
+            /* CORREÇÃO: Garantir que todos os elementos de impressão sejam visíveis */
+            #print-view,
+            #print-view * {
+                visibility: visible !important;
             }
             
-            /* Estilos da tabela de impressão */
             #print-table {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 border: 2px solid #1e40af !important;
                 table-layout: fixed;
-                font-size: 8pt !important;
+                font-size: 9pt !important;
+                page-break-inside: avoid;
             }
             
             #print-table td, #print-table th {
-                border: 1px solid #94a3b8 !important;
-                padding: 4px 3px !important;
+                border: 1px solid #374151 !important;
+                padding: 6px 4px !important;
                 text-align: center !important;
-                vertical-align: middle !important;
-                line-height: 1.1 !important;
+                vertical-align: top !important;
+                line-height: 1.3 !important;
+                height: auto !important;
             }
             
             #print-table th {
-                background: #3b82f6 !important;
-                color: white !important;
-                font-weight: bold !important;
-                font-size: 9pt !important;
-            }
-            
-            .week-header {
                 background: #1e40af !important;
                 color: white !important;
                 font-weight: bold !important;
                 font-size: 10pt !important;
+                padding: 8px 4px !important;
             }
             
             .print-title-container {
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
                 background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
                 color: white !important;
                 font-weight: bold !important;
-                font-size: 14pt !important;
-                padding: 10px !important;
+                font-size: 16pt !important;
+                padding: 12px !important;
                 border: 2px solid #1e3a8a !important;
-                margin-bottom: 8px !important;
-                border-radius: 4px !important;
-                position: relative;
+                margin-bottom: 10px !important;
+                border-radius: 6px !important;
+                text-align: center !important;
             }
 
             .print-title {
                 margin: 0 !important;
+                text-align: center !important;
             }
 
-            /* Logo na impressão */
-            .print-logo {
-                height: 35px;
-                position: absolute;
-                left: 20px;
-                top: 50%;
-                transform: translateY(-50%);
-            }
-            
             .month-year-reference {
-                background: #f8fafc !important;
+                background: #e5e7eb !important;
                 color: #1e40af !important;
                 font-weight: bold !important;
-                font-size: 11pt !important;
+                font-size: 12pt !important;
                 text-align: center !important;
-                padding: 6px !important;
-                border: 1px solid #cbd5e1 !important;
-                margin-bottom: 5px !important;
-                border-radius: 3px !important;
+                padding: 8px !important;
+                border: 1px solid #9ca3af !important;
+                margin-bottom: 8px !important;
+                border-radius: 4px !important;
+                display: block !important;
             }
             
-            /* Estilo para informações adicionais */
-            .info-text {
-                font-size: 7pt !important;
-                font-style: italic;
-                color: #64748b !important;
-                margin-top: 2px !important;
-            }
-            
-            /* Zebrado nas linhas */
-            #print-table tr:nth-child(even) {
-                background: #f8fafc !important;
-            }
-            
-            #print-table tr:nth-child(odd) {
-                background: #ffffff !important;
-            }
-            
-            /* Mostrar nomes estáticos na impressão */
+            /* CORREÇÃO: Garantir que nomes estáticos sejam visíveis */
             .static-agent-name { 
                 display: block !important;
                 font-weight: 700 !important;
-                font-size: 0.75rem !important;
+                font-size: 9pt !important;
                 text-align: center !important;
-                padding: 1px !important;
+                padding: 3px 2px !important;
                 color: #000 !important;
+                margin: 2px 0 !important;
+                background: transparent !important;
             }
             
-            /* Estilos específicos para a tabela de resumo na impressão */
-            .summary-container {
+            .agent-names-container {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 3px !important;
+                padding: 4px 0 !important;
+                min-height: 40px !important;
+            }
+            
+            .print-date-label {
+                display: block !important;
+                background: #3b82f6 !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 10pt !important;
+                padding: 6px 4px !important;
+                border-radius: 4px !important;
+                margin-bottom: 6px !important;
+            }
+            
+            .print-month-cell {
+                background: #1e40af !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 10pt !important;
+                writing-mode: vertical-rl !important;
+                text-orientation: mixed !important;
+                transform: rotate(180deg) !important;
+                padding: 8px 4px !important;
+                width: 25px !important;
+            }
+            
+            .print-summary-container {
                 display: block !important;
                 width: 100% !important;
-                margin-top: 1rem !important;
+                margin-top: 12px !important;
+                page-break-before: avoid;
             }
             
-            .summary-table-header { 
-                border-bottom: 1px solid #ccc !important;
+            .print-summary-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 9pt !important;
+            }
+            
+            .print-summary-table th {
+                background: #374151 !important;
+                color: white !important;
+                padding: 6px 8px !important;
+                text-align: left !important;
+            }
+            
+            .print-summary-table td {
+                padding: 4px 8px !important;
+                border-bottom: 1px solid #d1d5db !important;
+            }
+            
+            /* CORREÇÃO: Garantir que células vazias tenham altura mínima */
+            #print-table td:empty {
+                min-height: 60px;
+            }
+            
+            /* CORREÇÃO: Evitar quebra de página dentro das linhas */
+            #print-table tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
             }
         }
     </style>
@@ -345,7 +377,7 @@
         
     </main>
 
-    <!-- View de Impressão (oculta normalmente) - NOVA SEÇÃO ADICIONADA -->
+    <!-- View de Impressão (oculta normalmente) - TOTALMENTE CORRIGIDA -->
     <div id="print-view" class="hidden">
         <!-- Logo e Título -->
         <div class="print-title-container">
@@ -368,14 +400,16 @@
             <tbody id="print-body"></tbody>
         </table>
         <!-- Resumo na impressão -->
-        <div class="summary-container mt-4">
-            <div class="bg-slate-100 p-4 rounded-lg">
-                <h2 class="text-sm font-bold text-slate-900 bg-slate-200 -m-4 mb-0 p-4 rounded-t-lg uppercase tracking-wider text-center">Plantões Trabalhados</h2>
-                <table class="w-full mt-4 text-sm">
-                    <thead class="summary-table-header">
-                        <tr class="text-left">
-                            <th class="pb-2 font-bold text-slate-600">Agente</th>
-                            <th class="pb-2 font-bold text-slate-600 text-right">Total</th>
+        <div class="print-summary-container">
+            <div style="background: #f8fafc !important; padding: 12px !important; border-radius: 6px !important; border: 1px solid #e2e8f0 !important;">
+                <h2 style="font-size: 11pt !important; font-weight: bold !important; color: #1e293b !important; background: #e2e8f0 !important; margin: -12px -12px 12px -12px !important; padding: 8px 12px !important; border-radius: 6px 6px 0 0 !important; text-align: center !important; text-transform: uppercase !important; letter-spacing: 0.05em !important;">
+                    Plantões Trabalhados
+                </h2>
+                <table class="print-summary-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left !important;">Agente</th>
+                            <th style="text-align: right !important;">Total</th>
                         </tr>
                     </thead>
                     <tbody id="print-summary-body"></tbody>
@@ -386,21 +420,19 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth;
         let appId;
-        let userId; // Variável global no módulo para o userId
-        let isAppInitialized = false; // Flag para garantir inicialização única
+        let userId;
+        let isAppInitialized = false;
 
         const initializeAppLogic = () => {
-            if (isAppInitialized) return; // Prevenir re-inicialização
+            if (isAppInitialized) return;
             isAppInitialized = true;
-            console.log("Inicializando a lógica do app com userId:", userId);
 
-            // *** CORREÇÃO: Forçar o appId correto ***
-            appId = 'escala-de-plantoes-v1'; // Forçar o ID correto para carregar escalas salvas
+            appId = 'escala-de-plantoes-v1';
             
             const scheduleTypeSelect = document.getElementById('schedule-type-select');
             const monthSelect = document.getElementById('month-select');
@@ -433,8 +465,6 @@
 
             let sessionTimeoutId = null;
             const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
-            // O LOGIN_USER e LOGIN_PASS locais não são mais a fonte da verdade.
-            // O login real do Firebase é que manda.
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const ALLOWED_NAMES = ['EDUARDO', 'ESCALA', 'GABRIEL', 'GARCEZ', 'LEANDRO', 'LISBOA', 'MALCHER', 'PENNA', 'THEODORO', 'VIEIRA', 'WASHINGTON'];
@@ -453,134 +483,134 @@
                 "2025-11-15": ["PENNA", "EDUARDO"]
             };
 
-            // --- FUNÇÃO DE IMPRESSÃO ADICIONADA ---
+            // --- FUNÇÃO DE IMPRESSÃO COMPLETAMENTE CORRIGIDA ---
             function prepareForPrint() {
                 console.log("🖨️ Preparando para impressão...");
                 
-                // Atualizar referência do mês e ano
+                // Atualizar referência do mês e ano CORRETAMENTE
                 const month = parseInt(monthSelect.value);
                 const year = parseInt(yearSelect.value);
-                const scheduleType = scheduleTypeSelect.value;
                 
-                // Atualizar título da impressão
+                console.log("Mês/Ano para impressão:", month, year);
+                
+                // CORREÇÃO: Usar o título correto
                 printTitleText.textContent = editableTitlePart.textContent;
+                // CORREÇÃO: Formatar corretamente a referência do mês/ano
                 monthYearReference.textContent = `${PT_BR_MONTHS[month]} DE ${year}`;
                 
                 // Limpar conteúdo anterior
                 printBody.innerHTML = '';
                 printSummaryBody.innerHTML = '';
                 
-                // Coletar dados da tabela principal
                 const agentCounts = {};
-                const weeksData = [];
                 
-                // Processar cada semana
-                calendarBody.querySelectorAll('tr').forEach(row => {
+                // CORREÇÃO: Processar CADA LINHA da tabela principal
+                const calendarRows = calendarBody.querySelectorAll('tr');
+                
+                calendarRows.forEach((row, rowIndex) => {
                     const cells = row.querySelectorAll('td');
-                    if (cells.length === 8) { // Linha com dados de semana
-                        const weekData = {
-                            monthCell: cells[0]?.textContent || '',
-                            days: []
-                        };
+                    
+                    // CORREÇÃO: Verificar se é uma linha válida com 8 células
+                    if (cells.length === 8) {
+                        const printRow = document.createElement('tr');
                         
+                        // CORREÇÃO: Célula do mês - pegar texto diretamente
+                        const monthCell = document.createElement('td');
+                        monthCell.className = 'print-month-cell';
+                        monthCell.textContent = cells[0].textContent || '';
+                        printRow.appendChild(monthCell);
+                        
+                        // CORREÇÃO: Processar cada dia da semana (células 1-7)
                         for (let i = 1; i < cells.length; i++) {
                             const dayCell = cells[i];
-                            const dateLabel = dayCell.querySelector('.date-label');
-                            const agentInputs = dayCell.querySelectorAll('.agent-name-input');
+                            const printDayCell = document.createElement('td');
                             
-                            if (dateLabel) {
-                                const dayData = {
-                                    date: dateLabel.textContent,
-                                    agents: []
-                                };
+                            // CORREÇÃO: Verificar se a célula tem conteúdo
+                            const dateLabel = dayCell.querySelector('.date-label');
+                            
+                            if (dateLabel && dateLabel.textContent.trim() !== '') {
+                                const dateText = dateLabel.textContent;
+                                const agentInputs = dayCell.querySelectorAll('.agent-name-input');
+                                const agentNames = [];
                                 
+                                // CORREÇÃO: Coletar nomes dos agentes
                                 agentInputs.forEach(input => {
-                                    const agentName = input.value;
-                                    dayData.agents.push(agentName);
-                                    
-                                    // Contar para o resumo
-                                    if (agentName && agentName !== 'ESCALA') {
-                                        agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
+                                    const agentName = input.value.trim();
+                                    if (agentName && agentName !== '') {
+                                        agentNames.push(agentName);
+                                        // Contar para o resumo
+                                        if (agentName !== 'ESCALA') {
+                                            agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
+                                        }
                                     }
                                 });
                                 
-                                weekData.days.push(dayData);
+                                // CORREÇÃO: Construir HTML corretamente
+                                printDayCell.innerHTML = `
+                                    <div class="print-date-label">${dateText}</div>
+                                    <div class="agent-names-container">
+                                        ${agentNames.map(name => 
+                                            `<div class="static-agent-name">${name}</div>`
+                                        ).join('')}
+                                    </div>
+                                `;
                             } else {
-                                weekData.days.push(null);
+                                // CORREÇÃO: Célula vazia
+                                printDayCell.innerHTML = '&nbsp;';
                             }
+                            
+                            printRow.appendChild(printDayCell);
                         }
                         
-                        weeksData.push(weekData);
+                        printBody.appendChild(printRow);
                     }
                 });
                 
-                // Renderizar na view de impressão
-                weeksData.forEach(week => {
-                    const weekRow = document.createElement('tr');
-                    
-                    // Célula do mês
-                    const monthCell = document.createElement('td');
-                    monthCell.className = 'font-bold text-sm text-white p-2 bg-indigo-500';
-                    monthCell.style.writingMode = 'vertical-rl';
-                    monthCell.style.textOrientation = 'mixed';
-                    monthCell.style.transform = 'rotate(180deg)';
-                    monthCell.textContent = week.monthCell;
-                    weekRow.appendChild(monthCell);
-                    
-                    // Células dos dias
-                    week.days.forEach(day => {
-                        const dayCell = document.createElement('td');
-                        dayCell.className = 'border-2 border-slate-300 p-1 align-top';
-                        
-                        if (day) {
-                            dayCell.innerHTML = `
-                                <div class="mb-1"><span class="date-label block w-full bg-indigo-500 text-white text-base font-black py-1 rounded-md shadow-sm">${day.date}</span></div>
-                                <div class="flex flex-col justify-start items-center space-y-1 px-2">
-                                    ${day.agents.map(agent => `
-                                        <div class="static-agent-name">${agent || ''}</div>
-                                    `).join('')}
-                                </div>`;
-                        } else {
-                            dayCell.innerHTML = '&nbsp;';
-                        }
-                        weekRow.appendChild(dayCell);
-                    });
-                    
-                    printBody.appendChild(weekRow);
-                });
-                
-                // Renderizar resumo na impressão
+                // CORREÇÃO: Renderizar resumo corretamente
                 const sortedAgents = Object.keys(agentCounts).sort();
+                
                 if (sortedAgents.length === 0) {
-                    printSummaryBody.innerHTML = `<tr><td colspan="2" class="pt-3 text-slate-500 text-center">-</td></tr>`;
+                    printSummaryBody.innerHTML = `
+                        <tr>
+                            <td colspan="2" style="text-align: center; padding: 12px; color: #64748b; font-style: italic;">
+                                Nenhum plantão registrado
+                            </td>
+                        </tr>`;
                 } else {
                     sortedAgents.forEach(name => {
                         const row = document.createElement('tr');
-                        row.innerHTML = `<td class="py-1.5 font-semibold text-slate-800">${name}</td><td class="py-1.5 font-bold text-indigo-600 text-right">${agentCounts[name]}</td>`;
+                        row.innerHTML = `
+                            <td style="font-weight: 600; color: #1e293b;">${name}</td>
+                            <td style="font-weight: bold; color: #1e40af; text-align: right;">${agentCounts[name]}</td>
+                        `;
                         printSummaryBody.appendChild(row);
                     });
                 }
                 
-                console.log("✅ Preparação para impressão concluída");
+                console.log("✅ Preparação para impressão concluída. Total de agentes:", Object.keys(agentCounts).length);
+                console.log("Agentes encontrados:", agentCounts);
             }
 
             function handlePrint() {
                 console.log("🚀 Iniciando impressão...");
                 
-                prepareForPrint();
-                
-                // Mostrar a view de impressão
-                printView.classList.remove('hidden');
-                
-                // Pequeno delay para garantir que o DOM foi atualizado
+                // Pequeno delay para garantir que o DOM esteja pronto
                 setTimeout(() => {
-                    window.print();
+                    prepareForPrint();
                     
-                    // Restaurar após impressão
+                    // Mostrar a view de impressão
+                    printView.classList.remove('hidden');
+                    
+                    // Delay para garantir que o DOM foi atualizado
                     setTimeout(() => {
-                        printView.classList.add('hidden');
-                    }, 100);
-                }, 300);
+                        window.print();
+                        
+                        // Restaurar após impressão
+                        setTimeout(() => {
+                            printView.classList.add('hidden');
+                        }, 100);
+                    }, 500);
+                }, 100);
             }
 
             const enableEditing = () => {
@@ -613,8 +643,6 @@
                 disableEditing();
                 clearTimeout(sessionTimeoutId);
                 sessionTimeoutId = null;
-                // CORREÇÃO: Fazer sign-out do Firebase.
-                // O onAuthStateChanged tratará de fazer o login anônimo novamente.
                 if (auth) {
                     signOut(auth).catch(error => console.error("Erro ao fazer logout:", error));
                 }
@@ -634,17 +662,13 @@
                 const username = e.target.username.value;
                 const password = e.target.password.value;
                 
-                // CORREÇÃO: Em vez de login local, fazer login real no Firebase
-                // para obter permissão de escrita (não-anônimo).
-                // O utilizador deve inserir o email completo registado no Firebase Auth.
                 loginError.classList.add('hidden');
-                loginError.textContent = "Usuário ou senha inválidos."; // Resetar msg
+                loginError.textContent = "Usuário ou senha inválidos.";
                 
                 try {
-                    const userCredential = await signInWithEmailAndPassword(auth, username, password); // Usar 'username' como email
+                    const userCredential = await signInWithEmailAndPassword(auth, username, password);
                     console.log("Login (não-anônimo) bem-sucedido:", userCredential.user.uid);
                     
-                    // Sucesso no login do Firebase
                     enableEditing();
                     resetSessionTimer();
                     loginModal.classList.add('hidden');
@@ -653,7 +677,6 @@
 
                 } catch (error) {
                     console.error("Falha no login do Firebase:", error.code);
-                    // *** CORREÇÃO: Mensagem de erro mais específica para email inválido ***
                     if (error.code === 'auth/invalid-email') {
                         loginError.textContent = "O usuário deve ser um email válido (ex: email@dominio.com).";
                     } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
@@ -673,7 +696,6 @@
                 });
             });
 
-            // Atualizar o evento de impressão para usar a nova função
             printButton.addEventListener('click', handlePrint);
 
             const updateSummary = () => {
@@ -728,7 +750,6 @@
                     return;
                 }
 
-                // VERIFICAÇÃO FINAL: Checar se é anônimo antes de salvar
                 if (auth.currentUser.isAnonymous) {
                     console.error("Save blocked: User is anonymous. Please log in.");
                     alert("Erro: Você está em modo de leitura. Faça login para salvar.");
@@ -760,7 +781,6 @@
                 };
 
                 try {
-                    // Usar o caminho original do Firebase (schedules)
                     const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
                     await setDoc(scheduleRef, dataToSave);
                     saveButton.textContent = 'Salvo ✓';
@@ -782,7 +802,6 @@
                     return;
                 }
                 const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
-                // Usar o caminho original do Firebase (schedules)
                 const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
                 
                 try {
@@ -806,35 +825,29 @@
                         scheduleData = data?.schedule || {};
                     }
 
-                    // *** CORREÇÃO: Aplicar dados aos selects ANTES de atualizar o resumo ***
                     document.querySelectorAll('.agent-name-input').forEach(select => {
                         const date = select.dataset.date;
                         const index = parseInt(select.dataset.index);
                         const agentName = scheduleData[date]?.[index] || '';
                         
-                        // Verificar se o nome existe na lista, senão definir como ""
                         if (ALLOWED_NAMES.includes(agentName)) {
                              select.value = agentName;
                         } else {
-                             select.value = ''; // Limpar se o nome não for válido (ex: "ESCALA" antigo)
+                             select.value = '';
                         }
                        
                         adjustSelectWidth(select);
                         applyPlaceholderStyle(select);
                     });
                     
-                    // Chamar o updateSummary DEPOIS que os selects estiverem preenchidos
                     updateSummary();
                     
-                    // Garantir que o título seja atualizado mesmo se os dados não existirem
                     if (!data && !(scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9)) {
                         editableTitlePart.textContent = defaultTitle;
                     }
 
-
                 } catch(error) {
                     console.error("Error loading schedule data:", error);
-                    // Mesmo com erro, preencher o resumo com o que (não) foi carregado
                     updateSummary();
                 }
             };
@@ -860,15 +873,13 @@
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
                 
-                // Usar o caminho original do Firebase (schedules)
                 const schedulesRef = collection(db, `schedules/${appId}/periods`); 
                 try {
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
                     querySnapshot.forEach((doc) => {
-                        // Lida com IDs que contêm hífen (como 'extraordinaria_viagem')
                         const [year, month, ...typeParts] = doc.id.split('-'); 
-                        const type = typeParts.join('-'); // Rejunta o tipo
+                        const type = typeParts.join('-');
                         if (type === targetType) {
                             scales.push({ id: doc.id, ...doc.data() });
                         }
@@ -883,9 +894,8 @@
                     scales.sort((a, b) => b.id.localeCompare(a, b));
 
                     scales.forEach(scale => {
-                        // Lida com IDs que contêm hífen
                         const [year, month, ...typeParts] = scale.id.split('-');
-                        const type = typeParts.join('-'); // Rejunta o tipo
+                        const type = typeParts.join('-');
                         const monthName = PT_BR_MONTHS[parseInt(month) - 1];
                         
                         let scheduleTypeName;
@@ -1032,7 +1042,6 @@
                     updateSummary();
                 }
 
-                // Verificar o estado de login atual para habilitar/desabilitar a edição
                 if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
                     enableEditing();
                 } else {
@@ -1097,19 +1106,14 @@
             };
             
             saveButton.addEventListener('click', saveScheduleData);
-            monthSelect.addEventListener('click', handleDateChange); // Mudar para 'click' pode ajudar em alguns browsers
-            yearSelect.addEventListener('click', handleDateChange); // Mudar para 'click'
-            scheduleTypeSelect.addEventListener('click', handleDateChange); // Mudar para 'click'
+            monthSelect.addEventListener('click', handleDateChange);
+            yearSelect.addEventListener('click', handleDateChange);
+            scheduleTypeSelect.addEventListener('click', handleDateChange);
             
-            // CORREÇÃO: Re-adicionar a inicialização para carregar o calendário
             initialize(); 
         };
 
         const main = async () => {
-            // A lógica de inicialização do App (event listeners, etc.) é movida para
-            // dentro do onAuthStateChanged, mas a config do Firebase é feita aqui.
-            
-            // Usar a config exata fornecida por si
             const firebaseConfig = {
                   apiKey: "AIzaSyDJF8q6XyaAby_wKPxF9s3Lu_ePhoFErqU",
                   authDomain: "escala-26e73.firebaseapp.com",
@@ -1123,25 +1127,21 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                setLogLevel('Debug'); // Adiciona log detalhado do Firestore
+                setLogLevel('Debug');
 
-                // onAuthStateChanged é o observador principal
                 onAuthStateChanged(auth, user => {
                     if (user) {
-                        // Usuário está logado.
                         console.log("Autenticado com sucesso com UID:", user.uid);
                         if (user.isAnonymous) {
                             console.log("Utilizador é ANÓNIMO. Permissões: LEITURA");
                         } else {
                             console.log("Utilizador é NÃO-ANÓNIMO. Permissões: LEITURA/ESCRITA");
                         }
-                        userId = user.uid; // Define o userId global
+                        userId = user.uid;
                         
-                        // AGORA inicializa a lógica do app, pois temos um userId
                         initializeAppLogic(); 
                         
                     } else {
-                        // Usuário está deslogado. Tenta fazer o login anônimo para leitura.
                         console.log("Usuário deslogado. Tentando login anônimo...");
                         signInAnonymously(auth).catch(anonError => {
                             console.error("Login anônimo falhou:", anonError);
