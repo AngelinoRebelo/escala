@@ -70,30 +70,22 @@
             display: none;
         }
         
-        /* --- REGRAS DE IMPRESSÃO CORRIGIDAS --- */
+        /* --- REGRAS DE IMPRESSÃO (Método do arquivo modelo) --- */
         @media print {
-            /* 1. ESCONDE TUDO */
-            body * {
-                visibility: hidden !important;
+            /* 1. ESCONDE ELEMENTOS DA UI (usando display: none) */
+            #login-modal, main {
+                display: none !important;
             }
 
-            /* 2. MOSTRA APENAS A VIEW DE IMPRESSÃO E SEUS FILHOS */
-            #print-view, #print-view * {
-                visibility: visible !important;
-            }
-            
-            /* 3. COLOCA A VIEW DE IMPRESSÃO NA RAIZ VISUAL */
+            /* 2. MOSTRA APENAS A VIEW DE IMPRESSÃO */
             #print-view {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
+                display: block !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                display: block !important; /* Garantir que está visível */
             }
 
-            /* 4. ESTILOS GERAIS DA PÁGINA */
+            /* 3. ESTILOS GERAIS DA PÁGINA */
             body, html {
                 margin: 0 !important;
                 padding: 0 !important;
@@ -103,14 +95,13 @@
                 color: black !important;
             }
             
-            /* 5. CONFIGURAÇÃO DA PÁGINA */
+            /* 4. CONFIGURAÇÃO DA PÁGINA */
             @page {
                 size: A4 landscape;
                 margin: 8mm;
             }
             
-            /* --- ESTILOS DA TABELA DE IMPRESSÃO (Mantidos) --- */
-            
+            /* 5. ESTILOS DA TABELA DE IMPRESSÃO (Mantidos do arquivo original) */
             #print-table {
                 width: 100% !important;
                 border-collapse: collapse !important;
