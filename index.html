@@ -146,6 +146,11 @@
                  background: #1e40af !important;
             }
             
+            /* NOVO: Força a largura da primeira coluna do cabeçalho (Mês) */
+            #print-table .week-header th:first-child {
+                width: 12px !important;
+            }
+
             .print-title-container {
                 display: flex !important;
                 align-items: center !important;
@@ -212,19 +217,17 @@
             }
             
             /* Esta classe não é mais usada no layout de lista, mas mantida por segurança */
-                          .print-month-cell {
-                    background: #1e40af !important;
-                    color: white !important;
-                    font-weight: bold !important;
-                    font-size: 9pt !important; /* Reduzido de 10pt para 9pt */
-                    writing-mode: vertical-rl !important;
-                    text-orientation: mixed !important;
-                    transform: rotate(180deg) !important;
-                        padding: 4px 2px !important; /* Reduzido o padding */
-                    width: 12px !important; /* Reduzido de 15px para 12px */
-                    min-width: 9px !important;
-                    max-width: 9px !important;
-                }
+            .print-month-cell {
+                background: #1e40af !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 10pt !important;
+                writing-mode: vertical-rl !important;
+                text-orientation: mixed !important;
+                transform: rotate(180deg) !important;
+                padding: 8px 4px !important;
+                width: 12px !important; /* <-- Diminuído de 15px para 12px */
+            }
             
             .print-summary-container {
                 display: block !important;
