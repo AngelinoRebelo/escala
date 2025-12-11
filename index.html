@@ -660,8 +660,9 @@
                 
             });
                 
-                // CORREÇÃO: Renderizar resumo corretamente
-                const sortedAgents = Object.keys(agentCounts).sort();
+                // CORREÇÃO: Renderizar resumo seguindo a ordem de ALLOWED_NAMES
+                // Filtramos ALLOWED_NAMES para pegar apenas os que têm contagem > 0
+                const sortedAgents = ALLOWED_NAMES.filter(name => agentCounts.hasOwnProperty(name));
                 
                 if (sortedAgents.length === 0) {
                     printSummaryBody.innerHTML = `
@@ -802,7 +803,10 @@
                     if (name && name !== 'ESCALA') agentCounts[name] = (agentCounts[name] || 0) + 1;
                 });
                 summaryBody.innerHTML = '';
-                const sortedAgents = Object.keys(agentCounts).sort();
+                
+                // MODIFICADO: Ordenar pela ordem de ALLOWED_NAMES em vez de alfabética
+                const sortedAgents = ALLOWED_NAMES.filter(name => agentCounts.hasOwnProperty(name));
+                
                 if (sortedAgents.length === 0) {
                      summaryBody.innerHTML = `<tr><td colspan="2" class="pt-3 text-slate-500 text-center">-</td></tr>`;
                 } else {
