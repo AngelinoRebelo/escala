@@ -298,6 +298,21 @@
                 page-break-inside: avoid;
                 page-break-after: auto;
             }
+            
+            /* Animação de Loading simples */
+            .spinner {
+                border: 3px solid rgba(0, 0, 0, 0.1);
+                border-left-color: #4f46e5;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                animation: spin 1s linear infinite;
+                display: inline-block;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
         }
     </style>
 </head>
@@ -361,6 +376,39 @@
                             <span class="hidden sm:inline">Imprimir</span>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOVO BLOCO: Gerenciamento de Arquivo Turso -->
+        <div id="file-manager-section" class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex flex-col gap-1 w-full md:w-auto">
+                <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Arquivo da Escala
+                </h3>
+                <p id="current-file-status" class="text-xs text-slate-500">Nenhum arquivo disponível.</p>
+            </div>
+
+            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                <!-- Botão de Download (Turso) -->
+                <button id="turso-download-btn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Baixar Arquivo
+                </button>
+
+                <!-- Input e Botão de Upload (Turso) -->
+                <div id="turso-upload-container" class="hidden flex items-center gap-2">
+                    <input type="file" id="turso-file-input" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
+                    <label for="turso-file-input" class="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-md hover:bg-indigo-200 transition-colors">
+                        Escolher Arquivo
+                    </label>
+                    <button id="turso-upload-btn" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Enviar
+                    </button>
+                </div>
+                <div id="turso-loading" class="hidden">
+                    <div class="spinner border-2 border-indigo-200 border-l-indigo-600 rounded-full w-5 h-5 animate-spin"></div>
                 </div>
             </div>
         </div>
@@ -486,11 +534,149 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Importando a LibSQL (Turso) para Web
+        import { createClient } from "https://esm.sh/@libsql/client@0.14.0/web";
 
         let db, auth;
         let appId;
         let userId;
         let isAppInitialized = false;
+        
+        // --- Configuração Turso ---
+        const tursoUrl = "https://escala-trabalho-machaddoo.aws-us-west-2.turso.io";
+        const tursoAuthToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjU5NzU5NzEsImlkIjoiODM4MjIxYTQtMDcxNi00Y2I4LTk2NzYtY2NlOGE3NDlmMzJmIiwicmlkIjoiNGRhMTY3NTUtYmM3ZC00ZjgyLThkNGMtNjM0MTEyOGQxZmEyIn0._PgLm_Yc-4m_iahcW7pa74VJLIvifgh0kJWbjjPvu8F5mZQRKbTaeWsr2st3SVXa7Z60IDx0nZKMMXKlzbroCw";
+        
+        let tursoClient = null;
+
+        // --- Lógica Turso ---
+        const initTurso = async () => {
+            try {
+                tursoClient = createClient({
+                    url: tursoUrl,
+                    authToken: tursoAuthToken,
+                });
+                
+                // Cria a tabela de arquivos se não existir
+                await tursoClient.execute(`
+                    CREATE TABLE IF NOT EXISTS scale_files (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        filename TEXT,
+                        content TEXT,
+                        mime_type TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+                console.log("Turso: Conectado e tabela verificada.");
+                
+                // Verifica se há arquivo
+                checkLatestFile();
+            } catch (error) {
+                console.error("Erro ao inicializar Turso:", error);
+            }
+        };
+
+        const checkLatestFile = async () => {
+            if (!tursoClient) return;
+            const currentFileStatus = document.getElementById('current-file-status');
+            const downloadBtn = document.getElementById('turso-download-btn');
+            
+            try {
+                const result = await tursoClient.execute("SELECT id, filename, created_at FROM scale_files ORDER BY id DESC LIMIT 1");
+                
+                if (result.rows.length > 0) {
+                    const file = result.rows[0];
+                    currentFileStatus.innerHTML = `Disponível: <strong>${file.filename}</strong>`;
+                    downloadBtn.classList.remove('hidden');
+                    downloadBtn.onclick = () => downloadFileFromTurso(file.id, file.filename);
+                } else {
+                    currentFileStatus.textContent = "Nenhum arquivo disponível.";
+                    downloadBtn.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error("Erro ao buscar arquivo Turso:", e);
+                currentFileStatus.textContent = "Erro ao conectar ao banco de arquivos.";
+            }
+        };
+
+        const uploadFileToTurso = async () => {
+            const fileInput = document.getElementById('turso-file-input');
+            const file = fileInput.files[0];
+            const uploadBtn = document.getElementById('turso-upload-btn');
+            const loading = document.getElementById('turso-loading');
+            
+            if (!file) {
+                alert("Selecione um arquivo primeiro.");
+                return;
+            }
+            
+            // Limite simples de segurança para evitar travar o navegador com strings base64 gigantes
+            if (file.size > 5 * 1024 * 1024) { // 5MB
+                alert("O arquivo é muito grande. O limite recomendado é 5MB.");
+                return;
+            }
+
+            uploadBtn.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Content = e.target.result; // Inclui o data:mime;base64,...
+                
+                try {
+                    await tursoClient.execute({
+                        sql: "INSERT INTO scale_files (filename, content, mime_type) VALUES (?, ?, ?)",
+                        args: [file.name, base64Content, file.type]
+                    });
+                    
+                    alert("Arquivo enviado com sucesso!");
+                    fileInput.value = ""; // Limpa input
+                    checkLatestFile(); // Atualiza UI
+                } catch (error) {
+                    console.error("Erro no upload Turso:", error);
+                    alert("Erro ao salvar o arquivo no banco de dados.");
+                } finally {
+                    loading.classList.add('hidden');
+                    uploadBtn.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+
+        const downloadFileFromTurso = async (id, filename) => {
+            const downloadBtn = document.getElementById('turso-download-btn');
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.textContent = "Baixando...";
+            downloadBtn.disabled = true;
+
+            try {
+                const result = await tursoClient.execute({
+                    sql: "SELECT content FROM scale_files WHERE id = ?",
+                    args: [id]
+                });
+
+                if (result.rows.length > 0) {
+                    const content = result.rows[0].content;
+                    
+                    // Cria link de download
+                    const link = document.createElement('a');
+                    link.href = content; // content já é um Data URL
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert("Arquivo não encontrado.");
+                }
+            } catch (e) {
+                console.error("Erro no download Turso:", e);
+                alert("Erro ao baixar o arquivo.");
+            } finally {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }
+        };
+
 
         const initializeAppLogic = () => {
             if (isAppInitialized) return;
@@ -526,6 +712,27 @@
             const printSummaryBody = document.getElementById('print-summary-body');
             const monthYearReference = document.getElementById('month-year-reference');
             const printTitleText = document.getElementById('print-title-text');
+            
+            // Elementos Turso
+            const tursoUploadBtn = document.getElementById('turso-upload-btn');
+            const tursoFileInput = document.getElementById('turso-file-input');
+
+            // Inicializa Turso
+            initTurso();
+            
+            // Event Listener Upload
+            tursoUploadBtn.addEventListener('click', uploadFileToTurso);
+            // Mostrar nome do arquivo selecionado no botão label (opcional, mas bom para UX)
+            tursoFileInput.addEventListener('change', (e) => {
+                const label = e.target.nextElementSibling;
+                if (e.target.files.length > 0) {
+                    label.textContent = e.target.files[0].name.substring(0, 20) + (e.target.files[0].name.length > 20 ? '...' : '');
+                    label.classList.add('bg-indigo-200');
+                } else {
+                    label.textContent = "Escolher Arquivo";
+                    label.classList.remove('bg-indigo-200');
+                }
+            });
 
             let sessionTimeoutId = null;
             const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
@@ -716,6 +923,9 @@
                 saveButton.disabled = false;
                 loginButton.classList.add('hidden');
                 logoutButton.classList.remove('hidden');
+                
+                // Habilita controles Turso
+                document.getElementById('turso-upload-container').classList.remove('hidden');
             };
 
             const disableEditing = () => {
@@ -727,6 +937,9 @@
                 saveButton.disabled = true;
                 loginButton.classList.remove('hidden');
                 logoutButton.classList.add('hidden');
+                
+                // Desabilita controles Turso (apenas leitura)
+                document.getElementById('turso-upload-container').classList.add('hidden');
             };
             
             const resetSessionTimer = () => {
