@@ -230,6 +230,12 @@
                 vertical-align: middle !important;
             }
             
+            /* NOVO: Estilo para "desfocar" o texto ESCALA na impressão */
+            .blurred-text {
+                filter: blur(1.5px) !important;
+                opacity: 0.6 !important;
+            }
+            
             .agent-names-container {
                 display: flex !important;
                 flex-direction: column !important;
@@ -847,11 +853,12 @@
                                 });
                                 
                                 // CORREÇÃO: Construir HTML corretamente
+                                // Se o nome for 'ESCALA', adiciona a classe .blurred-text
                                 printDayCell.innerHTML = `
                                     <div class="print-date-label">${dateText} ${teamLabel}</div>
                                     <div class="agent-names-container">
                                         ${agentNames.map(name => 
-                                            `<div class="static-agent-name">${name}</div>`
+                                            `<div class="static-agent-name ${name === 'ESCALA' ? 'blurred-text' : ''}">${name}</div>`
                                         ).join('')}
                                     </div>
                                 `;
