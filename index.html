@@ -367,6 +367,16 @@
                         <select id="year-select" class="w-20 p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
                     </div>
                  </div>
+                 
+                 <!-- Input de data oculto para seleção de dia -->
+                 <input type="date" id="extra-date-input" class="hidden">
+                 
+                 <!-- Botão para adicionar dia (visível apenas na Viagem) -->
+                 <button id="add-day-button" class="hidden px-3 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Dia
+                 </button>
+
                  <div class="flex gap-2 w-full sm:w-auto justify-end">
                      <button id="login-button" class="px-4 py-2 bg-slate-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-slate-700">Login</button>
                      <button id="logout-button" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-red-700 hidden">Sair</button>
@@ -711,6 +721,8 @@
             const pastScalesListNelson = document.getElementById('past-scales-list-nelson');
             const pastScalesListFds = document.getElementById('past-scales-list-fds');
             const pastScalesListViagem = document.getElementById('past-scales-list-viagem');
+            const addDayButton = document.getElementById('add-day-button');
+            const extraDateInput = document.getElementById('extra-date-input'); // NOVO: Input de data
             
             // Elementos da view de impressão
             const printView = document.getElementById('print-view');
@@ -725,6 +737,9 @@
 
             // Inicializa Turso
             initTurso();
+
+            // Variável para armazenar datas extras (Array de strings YYYY-MM-DD)
+            let extraDates = [];
             
             // Event Listener Upload
             tursoUploadBtn.addEventListener('click', uploadFileToTurso);
@@ -933,6 +948,12 @@
                 
                 // Habilita controles Turso
                 document.getElementById('turso-upload-container').classList.remove('hidden');
+                
+                // Habilita botão de adicionar dia se estiver na viagem
+                if (document.getElementById('schedule-type-select').value === 'extraordinaria_viagem') {
+                    addDayButton.disabled = false;
+                    addDayButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
             };
 
             const disableEditing = () => {
@@ -947,6 +968,10 @@
                 
                 // Desabilita controles Turso (apenas leitura)
                 document.getElementById('turso-upload-container').classList.add('hidden');
+                
+                // Desabilita botão adicionar dia
+                addDayButton.disabled = true;
+                addDayButton.classList.add('opacity-50', 'cursor-not-allowed');
             };
             
             const resetSessionTimer = () => {
@@ -968,6 +993,36 @@
 
             loginButton.addEventListener('click', () => loginModal.classList.remove('hidden'));
             logoutButton.addEventListener('click', logout);
+            
+            // Lógica do botão de Adicionar Dia - MOVIDO para usar date picker
+            addDayButton.addEventListener('click', () => {
+                // Abre o seletor de data oculto
+                if (extraDateInput.showPicker) {
+                    extraDateInput.showPicker();
+                } else {
+                    extraDateInput.click();
+                }
+            });
+
+            // Lógica ao selecionar data no input oculto
+            extraDateInput.addEventListener('change', async (e) => {
+                const selectedDate = e.target.value;
+                if (!selectedDate) return;
+                
+                // Adiciona data se não existir
+                if (!extraDates.includes(selectedDate)) {
+                    extraDates.push(selectedDate);
+                    
+                    // IMPORTANTE: Salvar dados atuais antes de regenerar para não perder edições
+                    await saveScheduleData();
+                    
+                    // Regenera o calendário
+                    generateCalendar(parseInt(yearSelect.value), parseInt(monthSelect.value), scheduleTypeSelect.value);
+                }
+                
+                // Limpa o input para permitir selecionar a mesma data se for removida (futuro) ou outra
+                e.target.value = '';
+            });
 
             loginModal.addEventListener('click', (e) => {
                 if (e.target === loginModal) {
@@ -1107,6 +1162,8 @@
                     title: editableTitlePart.textContent,
                     schedule: scheduleData,
                     teams: teamsData, // Inclui os times no salvamento
+                    //extraDays: currentExtraDays, // REMOVIDO: Antigo contador
+                    extraDates: extraDates, // NOVO: Salva array de datas
                     createdAt: new Date()
                 };
 
@@ -1141,6 +1198,28 @@
                     let scheduleData;
                     // NOVO: Dados das equipes
                     const teamsData = data?.teams || {};
+
+                    // NOVO: Carregar array de datas extras
+                    const savedExtraDates = data?.extraDates || [];
+                    
+                    // Verifica se há novas datas carregadas que não estão no estado local
+                    let hasNewDates = false;
+                    savedExtraDates.forEach(d => {
+                        if (!extraDates.includes(d)) {
+                            extraDates.push(d);
+                            hasNewDates = true;
+                        }
+                    });
+                    
+                    // Se houver datas novas carregadas do banco, precisamos regenerar o calendário
+                    // para garantir que os campos existam para serem preenchidos.
+                    // ATENÇÃO: Se acabamos de salvar e regenerar (fluxo do Add Day), hasNewDates será false,
+                    // evitando loop infinito.
+                    if (hasNewDates) {
+                        // Rechama o generateCalendar com as datas atualizadas.
+                        generateCalendar(year, month, scheduleType);
+                        return; // Interrompe esta execução
+                    }
 
                     if (!data && scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9) {
                         scheduleData = prefilledNelsonData;
@@ -1300,18 +1379,44 @@
 
             const generateCalendar = (year, month, scheduleType) => {
                 calendarBody.innerHTML = '';
-                const startDate = new Date(year, month, 16);
-                const endDate = new Date(year, month + 1, 15);
+                
+                // Definir intervalo padrão (16 a 15)
+                let startDate = new Date(year, month, 16);
+                let endDate = new Date(year, month + 1, 15);
+                
+                // --- LÓGICA DE DATAS EXTRAS ---
+                if (extraDates.length > 0) {
+                    // Converter strings YYYY-MM-DD para Date
+                    const extraDateObjects = extraDates.map(d => {
+                        const [y, m, day] = d.split('-').map(Number);
+                        return new Date(y, m - 1, day);
+                    });
+                    
+                    // Encontrar a menor e maior data entre o intervalo padrão e as extras
+                    extraDateObjects.forEach(d => {
+                        if (d < startDate) startDate = d;
+                        if (d > endDate) endDate = d;
+                    });
+                }
+                // -----------------------------
                 
                 let currentDate = new Date(startDate);
+                // Ajustar para a segunda-feira anterior para começar a semana corretamente
                 while (currentDate.getDay() !== 1) { currentDate.setDate(currentDate.getDate() - 1); }
 
                 const weeks = [];
                 let loopEndDate = new Date(endDate);
+                
+                // Gera semanas até cobrir a data final
                 while (weeks.length === 0 || loopEndDate >= currentDate) {
                     let week = Array(7).fill(null);
                     for (let i = 0; i < 7; i++) {
-                        if (currentDate >= startDate && currentDate <= endDate) week[i] = new Date(currentDate);
+                        // Inclui o dia se estiver dentro do intervalo real (startDate até endDate)
+                        // OU se for uma das datas extras específicas (caso quiséssemos buracos, mas aqui estamos expandindo o range)
+                        // Como expandimos startDate/endDate para cobrir tudo, a verificação de range padrão funciona.
+                        if (currentDate >= startDate && currentDate <= endDate) {
+                            week[i] = new Date(currentDate);
+                        }
                         currentDate.setDate(currentDate.getDate() + 1);
                     }
                     if (week.some(d => d !== null)) weeks.push(week);
@@ -1427,22 +1532,31 @@
                 const month = parseInt(monthSelect.value);
                 const scheduleType = scheduleTypeSelect.value;
                 
+                // Resetar dias extras ao trocar de escala (exceto se for recarregado do banco depois)
+                extraDates = [];
+
                 // CORREÇÃO: Define o título e a localização com base na seleção
+                // NOVO: Gerencia a visibilidade do botão Adicionar Dia
                 if (scheduleType === 'ordinaria') {
                     editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
                     locationPart.textContent = ' - DNA. MARIANA';
+                    addDayButton.classList.add('hidden');
                 } else if (scheduleType === 'ordinaria_nelson') {
                     editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
                     locationPart.textContent = ' - SR. NELSON';
+                    addDayButton.classList.add('hidden');
                 } else if (scheduleType === 'fimdesemana') {
                     editableTitlePart.textContent = 'ESCALA FIM DE SEMANA/FERIADO';
                     locationPart.textContent = '';
+                    addDayButton.classList.add('hidden');
                 } else if (scheduleType === 'extraordinaria_viagem') {
                     editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA - VIAGEM';
                     locationPart.textContent = '';
+                    addDayButton.classList.remove('hidden');
                 } else {
                     editableTitlePart.textContent = 'ESCALA';
                     locationPart.textContent = '';
+                    addDayButton.classList.add('hidden');
                 }
                 
                 generateCalendar(year, month, scheduleType);
