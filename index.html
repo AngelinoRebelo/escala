@@ -1422,11 +1422,17 @@
                     if (week.some(d => d !== null)) weeks.push(week);
                 }
                 
-                let monthRowspans = {};
-                weeks.forEach(week => week.forEach(day => {
-                    if (day) monthRowspans[day.getMonth()] = (monthRowspans[day.getMonth()] || 0) + 1;
-                }));
-                 
+                // --- CORREÇÃO DE ROWSPAN (LAYOUT) ---
+                // Calcula quantas SEMANAS (linhas) cada mês ocupa visualmente.
+                let monthWeeksCount = {};
+                weeks.forEach(week => {
+                    const firstDay = week.find(d => d);
+                    if (firstDay) {
+                        const mKey = firstDay.getMonth();
+                        monthWeeksCount[mKey] = (monthWeeksCount[mKey] || 0) + 1;
+                    }
+                });
+                
                 let renderedMonths = [];
                 weeks.forEach(week => {
                     const row = document.createElement('tr');
@@ -1444,7 +1450,10 @@
                         monthCell.style.textOrientation = 'mixed';
                         monthCell.style.transform = 'rotate(180deg)';
                         monthCell.textContent = monthName;
-                        monthCell.rowSpan = Math.ceil(monthRowspans[monthKey] / 7);
+                        
+                        // CORREÇÃO: Usa a contagem de semanas, não de dias
+                        monthCell.rowSpan = monthWeeksCount[monthKey];
+                        
                         row.appendChild(monthCell);
                         renderedMonths.push(monthKey);
                     }
