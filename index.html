@@ -469,10 +469,13 @@
         <!-- Conteúdo da Aba "Escala Atual" -->
         <div id="current-scale-view" class="tab-content">
             <div id="print-layout-container" class="flex flex-col lg:flex-row w-full gap-6">
-                <!-- Calendário da Escala -->
-                 <!-- CORREÇÃO PRINCIPAL: overflow-x-auto permite rolar a tabela horizontalmente no mobile -->
-                <div class="flex-grow table-container overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-                    <!-- CORREÇÃO PRINCIPAL: min-w-[900px] força a tabela a ter um tamanho mínimo legível, ativando a rolagem -->
+                <!-- Calendário + setas mês anterior / próximo -->
+                <div class="flex-grow flex items-stretch gap-1.5 sm:gap-2 min-w-0">
+                    <button type="button" id="calendar-prev-month" title="Mês anterior" aria-label="Mês anterior"
+                        class="calendar-month-nav flex-shrink-0 flex items-center justify-center w-9 sm:w-10 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-200 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <div class="flex-grow table-container overflow-x-auto border border-slate-200 rounded-lg shadow-sm min-w-0">
                     <table class="w-full border-collapse text-center table-fixed min-w-[900px]">
                         <thead>
                             <tr class="bg-slate-900 text-white uppercase text-xs sm:text-sm tracking-wider">
@@ -488,6 +491,11 @@
                         </thead>
                         <tbody id="calendar-body" class="bg-white"></tbody>
                     </table>
+                    </div>
+                    <button type="button" id="calendar-next-month" title="Próximo mês" aria-label="Próximo mês"
+                        class="calendar-month-nav flex-shrink-0 flex items-center justify-center w-9 sm:w-10 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-200 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
                 </div>
                 <!-- Resumo de Plantões -->
                 <aside class="w-full lg:w-1/4 flex-shrink-0 summary-container">
@@ -1684,6 +1692,46 @@
                 }
                 handleDateChange();
             };
+
+            const ensureYearInSelect = (y) => {
+                const yStr = String(y);
+                if ([...yearSelect.options].some((o) => o.value === yStr)) return;
+                const values = [...yearSelect.options].map((o) => Number(o.value));
+                values.push(y);
+                values.sort((a, b) => a - b);
+                yearSelect.innerHTML = '';
+                values.forEach((v) => yearSelect.add(new Option(String(v), String(v))));
+            };
+
+            const navigateCalendarMonthBy = async (delta) => {
+                const prev = capturePeriodSnapshot();
+                let m = parseInt(monthSelect.value, 10);
+                let y = parseInt(yearSelect.value, 10);
+                m += delta;
+                if (m < 0) {
+                    m = 11;
+                    y -= 1;
+                } else if (m > 11) {
+                    m = 0;
+                    y += 1;
+                }
+                ensureYearInSelect(y);
+                monthSelect.value = String(m);
+                yearSelect.value = String(y);
+                try {
+                    await flushPeriodChangeSave(prev);
+                } catch (err) {
+                    console.error('Erro ao salvar antes de mudar mês (setas):', err);
+                }
+                handleDateChange();
+            };
+
+            document.getElementById('calendar-prev-month')?.addEventListener('click', () => {
+                navigateCalendarMonthBy(-1);
+            });
+            document.getElementById('calendar-next-month')?.addEventListener('click', () => {
+                navigateCalendarMonthBy(1);
+            });
 
             const initialize = () => {
                 const today = new Date();
