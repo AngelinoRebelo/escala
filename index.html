@@ -112,6 +112,12 @@
                 visibility: visible !important;
             }
 
+            /* Fundos e textos coloridos saem no papel (Chrome/Edge/Firefox) */
+            #print-view, #print-view * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
             /* 4. Posiciona o container de impressão para preencher a página */
             #print-view {
                 position: absolute !important;
@@ -123,14 +129,13 @@
                 display: block !important; /* Garante que é um bloco */
             }
             
-            /* 5. Reseta o body e html para a impressão */
+            /* 5. Reseta o body e html para a impressão (sem forçar cor em todo o #print-view) */
             body, html {
                 margin: 0 !important;
                 padding: 0 !important;
-                background: white !important;
+                background: #ffffff !important;
                 font-size: 10pt !important;
                 line-height: 1.2;
-                color: black !important;
             }
             
             /* 6. Configuração da página */
@@ -143,16 +148,15 @@
             #print-table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                /* Borda externa da tabela em PRETO */
-                border: 2px solid #000 !important; 
+                border: 2px solid #cbd5e1 !important; /* slate-300 — igual à grade do site */
                 table-layout: fixed;
                 font-size: 9pt !important;
                 page-break-inside: avoid;
+                background: #ffffff !important;
             }
             
             #print-table td, #print-table th {
-                /* Linhas separadoras (grid) em PRETO */
-                border: 1px solid #000 !important; 
+                border: 1px solid #cbd5e1 !important; /* slate-300 */
                 padding: 6px 4px !important;
                 text-align: center !important;
                 vertical-align: top !important;
@@ -168,11 +172,10 @@
                 padding: 8px 4px !important;
             }
             
-            /* MODIFICADO: Estilo específico para o cabeçalho da lista */
+            /* Cabeçalho dias da semana = bg-slate-900 do calendário principal */
             #print-table .week-header th {
-                 background: #1e40af !important;
-                 /* Garante que a borda do cabeçalho também seja preta */
-                 border: 1px solid #000 !important;
+                 background: #0f172a !important;
+                 border: 1px solid #1e293b !important;
             }
             
             /* NOVO: Força a largura da primeira coluna do cabeçalho (Mês) */
@@ -186,15 +189,14 @@
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
-                color: white !important;
+                background: #ffffff !important;
+                color: #334155 !important; /* slate-700 — título principal no site */
                 font-weight: bold !important;
                 font-size: 16pt !important;
                 padding: 12px !important;
-                /* Borda do título em preto */
-                border: 2px solid #000 !important;
+                border: 1px solid #e2e8f0 !important; /* slate-200 */
                 margin-bottom: 10px !important;
-                border-radius: 6px !important;
+                border-radius: 0.5rem !important;
                 text-align: center !important;
             }
 
@@ -204,16 +206,14 @@
             }
 
             .month-year-reference {
-                background: #e5e7eb !important;
-                color: #1e40af !important;
+                background: transparent !important;
+                color: #64748b !important; /* slate-500 — faixa de data no site */
                 font-weight: bold !important;
                 font-size: 12pt !important;
                 text-align: center !important;
-                padding: 8px !important;
-                /* Borda da referência de mês em preto */
-                border: 1px solid #000 !important;
+                padding: 4px 8px 8px !important;
+                border: none !important;
                 margin-bottom: 8px !important;
-                border-radius: 4px !important;
                 display: block !important;
             }
             
@@ -224,7 +224,7 @@
                 font-size: 9pt !important;
                 text-align: center !important;
                 padding: 3px 2px !important;
-                color: #000 !important;
+                color: #1e293b !important; /* slate-800 */
                 margin: 0 !important;
                 background: transparent !important;
                 vertical-align: middle !important;
@@ -246,18 +246,26 @@
             
             .print-date-label {
                 display: block !important;
-                background: #3b82f6 !important;
-                color: white !important;
+                color: #ffffff !important;
                 font-weight: bold !important;
                 font-size: 10pt !important;
                 padding: 6px 4px !important;
-                border-radius: 4px !important;
+                border-radius: 0.375rem !important;
                 margin-bottom: 6px !important;
+            }
+            /* Faixa da data: indigo-500 / blue-500 como no calendário */
+            .print-date-label--indigo {
+                background: #6366f1 !important;
+            }
+            .print-date-label--blue {
+                background: #3b82f6 !important;
+            }
+            .print-date-label span {
+                color: rgba(255, 255, 255, 0.95) !important;
             }
             
             .print-month-cell {
-                background: #1e40af !important;
-                color: white !important;
+                color: #ffffff !important;
                 font-weight: bold !important;
                 font-size: 9pt !important; 
                 writing-mode: vertical-rl !important;
@@ -265,8 +273,18 @@
                 transform: rotate(180deg) !important;
                 padding: 8px 2px !important; 
                 width: 40px !important; 
-                /* Borda da célula do mês em preto */
-                border: 1px solid #000 !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            .print-month-cell--indigo {
+                background: #6366f1 !important;
+            }
+            .print-month-cell--blue {
+                background: #3b82f6 !important;
+            }
+
+            /* Sábado/Domingo: bg-slate-50 */
+            #print-table td.print-day-cell-weekend {
+                background: #f8fafc !important;
             }
             
             .print-summary-container {
@@ -282,18 +300,26 @@
             }
             
             .print-summary-table th {
-                background: #374151 !important;
-                color: white !important;
+                background: transparent !important;
+                color: #475569 !important; /* slate-600 — thead do resumo no site */
                 padding: 6px 8px !important;
                 text-align: left !important;
-                /* Borda do cabeçalho do resumo em preto */
-                border: 1px solid #000 !important;
+                border: none !important;
+                border-bottom: 1px solid #cbd5e1 !important;
             }
             
             .print-summary-table td {
                 padding: 4px 8px !important;
-                /* Linhas separadoras do resumo em PRETO */
-                border-bottom: 1px solid #000 !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+            }
+            .print-summary-name {
+                font-weight: 600 !important;
+                color: #1e293b !important; /* slate-800 */
+            }
+            .print-summary-total {
+                font-weight: bold !important;
+                color: #4f46e5 !important; /* indigo-600 */
+                text-align: right !important;
             }
             
             #print-table td:empty {
@@ -527,8 +553,8 @@
 
             <!-- Resumo na impressão (MOVIDO DE VOLTA PARA A DIREITA) -->
             <div class="print-summary-container" style="width: 30% !important; margin-top: 0 !important;">
-                <div style="background: #f8fafc !important; padding: 12px !important; border-radius: 6px !important; border: 1px solid #000 !important; height: 100% !important;">
-                    <h2 style="font-size: 11pt !important; font-weight: bold !important; color: #1e293b !important; background: #e2e8f0 !important; margin: -12px -12px 12px -12px !important; padding: 8px 12px !important; border-radius: 6px 6px 0 0 !important; text-align: center !important; text-transform: uppercase !important; letter-spacing: 0.05em !important;">
+                <div class="print-summary-panel" style="background: #f1f5f9 !important; padding: 12px !important; border-radius: 0.5rem !important; border: 1px solid #e2e8f0 !important; height: 100% !important;">
+                    <h2 style="font-size: 11pt !important; font-weight: bold !important; color: #0f172a !important; background: #e2e8f0 !important; margin: -12px -12px 12px -12px !important; padding: 8px 12px !important; border-radius: 0.5rem 0.5rem 0 0 !important; text-align: center !important; text-transform: uppercase !important; letter-spacing: 0.05em !important;">
                         Plantões Trabalhados
                     </h2>
                     <table class="print-summary-table">
@@ -740,7 +766,19 @@
 
             // Variável para armazenar datas extras (Array de strings YYYY-MM-DD)
             let extraDates = [];
-            
+            let autoSaveDebounceTimer = null;
+            const AUTOSAVE_DEBOUNCE_MS = 600;
+            let periodSnapshotBeforeSelect = null;
+            let saveChain = Promise.resolve();
+
+            const capturePeriodSnapshot = () => ({
+                year: parseInt(yearSelect.value, 10),
+                month: parseInt(monthSelect.value, 10),
+                scheduleType: scheduleTypeSelect.value
+            });
+            const periodsDiffer = (a, b) =>
+                !a || !b || a.year !== b.year || a.month !== b.month || a.scheduleType !== b.scheduleType;
+
             // Event Listener Upload
             tursoUploadBtn.addEventListener('click', uploadFileToTurso);
             // Mostrar nome do arquivo selecionado no botão label (opcional, mas bom para UX)
@@ -811,8 +849,10 @@
                     // Se a linha tem 8 células, é a primeira linha de um mês
                     if (cells.length === 8) {
                         const monthCell = document.createElement('td');
-                        monthCell.className = 'print-month-cell';
-                        monthCell.textContent = cells[0].textContent || '';
+                        const srcMonth = cells[0];
+                        const monthTone = srcMonth.classList.contains('bg-indigo-500') ? 'print-month-cell--indigo' : 'print-month-cell--blue';
+                        monthCell.className = `print-month-cell ${monthTone}`;
+                        monthCell.textContent = srcMonth.textContent || '';
                         
                         // Obter o rowspan da célula original e aplicar
                         const originalRowSpan = cells[0].rowSpan;
@@ -836,8 +876,9 @@
                     for (let i = dayCellStartIndex; i < cells.length; i++) {
                         const dayCell = cells[i];
                         const printDayCell = document.createElement('td');
-                        
-                        // CORREÇÃO: Verificar se a célula tem conteúdo
+                        const colInWeek = i - dayCellStartIndex;
+                        if (colInWeek >= 5) printDayCell.classList.add('print-day-cell-weekend');
+
                         const dateLabel = dayCell.querySelector('.date-label');
                         
                         if (dateLabel && dateLabel.textContent.trim() !== '') {
@@ -867,10 +908,10 @@
                                     }
                                 });
                                 
-                                // CORREÇÃO: Construir HTML corretamente
-                                // Se o nome for 'ESCALA', adiciona a classe .blurred-text
+                                const labelTone = dateLabel.classList.contains('bg-indigo-500') ? 'print-date-label--indigo' : 'print-date-label--blue';
+
                                 printDayCell.innerHTML = `
-                                    <div class="print-date-label">${dateText} ${teamLabel}</div>
+                                    <div class="print-date-label ${labelTone}">${dateText} ${teamLabel}</div>
                                     <div class="agent-names-container">
                                         ${agentNames.map(name => 
                                             `<div class="static-agent-name ${name === 'ESCALA' ? 'blurred-text' : ''}">${name}</div>`
@@ -904,8 +945,8 @@
                     sortedAgents.forEach(name => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td style="font-weight: 600; color: #1e293b;">${name}</td>
-                            <td style="font-weight: bold; color: #1e40af; text-align: right;">${agentCounts[name]}</td>
+                            <td class="print-summary-name">${name}</td>
+                            <td class="print-summary-total">${agentCounts[name]}</td>
                         `;
                         printSummaryBody.appendChild(row);
                     });
@@ -1014,7 +1055,7 @@
                     extraDates.push(selectedDate);
                     
                     // IMPORTANTE: Salvar dados atuais antes de regenerar para não perder edições
-                    await saveScheduleData();
+                    await saveScheduleData({ silent: true });
                     
                     // Regenera o calendário
                     generateCalendar(parseInt(yearSelect.value), parseInt(monthSelect.value), scheduleTypeSelect.value);
@@ -1120,68 +1161,135 @@
                 document.body.removeChild(tempSpan);
             };
 
-            const saveScheduleData = async () => {
-                if (!db || !auth.currentUser || !userId) {
-                    console.error("Save failed: DB not initialized or user not authenticated.");
-                    return;
-                }
-
-                if (auth.currentUser.isAnonymous) {
-                    console.error("Save blocked: User is anonymous. Please log in.");
-                    alert("Erro: Você está em modo de leitura. Faça login para salvar.");
-                    return;
-                }
-
-                saveButton.disabled = true;
-                saveButton.textContent = 'Salvando...';
-
-                const year = parseInt(yearSelect.value);
-                const month = parseInt(monthSelect.value);
-                const scheduleType = scheduleTypeSelect.value;
-                const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
-                
-                const scheduleData = {};
-                calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
-                    const date = field.dataset.date;
-                    const index = parseInt(field.dataset.index);
-                    if (field.value) {
-                        if (!scheduleData[date]) scheduleData[date] = ['', ''];
-                        scheduleData[date][index] = field.value;
+            const saveScheduleData = (opts = {}) => {
+                const run = async () => {
+                    const silent = opts.silent === true;
+                    if (!db || !auth.currentUser || !userId) {
+                        if (!silent) console.error("Save failed: DB not initialized or user not authenticated.");
+                        return;
                     }
-                });
 
-                // NOVO: Salva dados das equipes (Team Selectors)
-                const teamsData = {};
-                calendarBody.querySelectorAll('.team-select-input').forEach(field => {
-                    if (field.value) {
-                        teamsData[field.dataset.date] = field.value;
+                    if (auth.currentUser.isAnonymous) {
+                        if (!silent) {
+                            console.error("Save blocked: User is anonymous. Please log in.");
+                            alert("Erro: Você está em modo de leitura. Faça login para salvar.");
+                        }
+                        return;
                     }
-                });
 
-                const dataToSave = {
-                    title: editableTitlePart.textContent,
-                    schedule: scheduleData,
-                    teams: teamsData, // Inclui os times no salvamento
-                    //extraDays: currentExtraDays, // REMOVIDO: Antigo contador
-                    extraDates: extraDates, // NOVO: Salva array de datas
-                    createdAt: new Date()
+                    const year = typeof opts.year === 'number' ? opts.year : parseInt(yearSelect.value, 10);
+                    const month = typeof opts.month === 'number' ? opts.month : parseInt(monthSelect.value, 10);
+                    const scheduleType = opts.scheduleType !== undefined ? opts.scheduleType : scheduleTypeSelect.value;
+                    const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
+
+                    if (!silent) {
+                        saveButton.disabled = true;
+                        saveButton.textContent = 'Salvando...';
+                    }
+
+                    const scheduleData = {};
+                    calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
+                        const date = field.dataset.date;
+                        const index = parseInt(field.dataset.index);
+                        if (field.value) {
+                            if (!scheduleData[date]) scheduleData[date] = ['', ''];
+                            scheduleData[date][index] = field.value;
+                        }
+                    });
+
+                    const teamsData = {};
+                    calendarBody.querySelectorAll('.team-select-input').forEach(field => {
+                        if (field.value) {
+                            teamsData[field.dataset.date] = field.value;
+                        }
+                    });
+
+                    const dataToSave = {
+                        title: editableTitlePart.textContent,
+                        schedule: scheduleData,
+                        teams: teamsData,
+                        extraDates: extraDates,
+                        createdAt: new Date()
+                    };
+
+                    try {
+                        const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                        await setDoc(scheduleRef, dataToSave);
+                        if (silent) {
+                            saveButton.textContent = 'Salvo automaticamente';
+                            setTimeout(() => {
+                                saveButton.textContent = 'Salvar Escala';
+                            }, 1600);
+                        } else {
+                            saveButton.textContent = 'Salvo ✓';
+                        }
+                    } catch (error) {
+                        console.error("Error saving schedule data: ", error);
+                        saveButton.textContent = silent ? 'Salvar Escala' : 'Erro ao Salvar';
+                        if (!silent) {
+                            alert(`Ocorreu um erro ao salvar a escala. Verifique o console para mais detalhes.\nCódigo: ${error.code}`);
+                        }
+                    } finally {
+                        if (!silent) {
+                            setTimeout(() => {
+                                saveButton.disabled = false;
+                                saveButton.textContent = 'Salvar Escala';
+                            }, 2000);
+                        }
+                    }
                 };
-
-                try {
-                    const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
-                    await setDoc(scheduleRef, dataToSave);
-                    saveButton.textContent = 'Salvo ✓';
-                } catch (error) {
-                    console.error("Error saving schedule data: ", error);
-                    saveButton.textContent = 'Erro ao Salvar';
-                    alert(`Ocorreu um erro ao salvar a escala. Verifique o console para mais detalhes.\nCódigo: ${error.code}`);
-                } finally {
-                    setTimeout(() => {
-                        saveButton.disabled = false;
-                        saveButton.textContent = 'Salvar Escala';
-                    }, 2000);
-                }
+                saveChain = saveChain.then(run).catch((e) => console.error(e));
+                return saveChain;
             };
+
+            const requestScheduleAutoSave = () => {
+                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = setTimeout(() => {
+                    autoSaveDebounceTimer = null;
+                    saveScheduleData({ silent: true });
+                }, AUTOSAVE_DEBOUNCE_MS);
+            };
+
+            const flushPeriodChangeSave = async (previousPeriod) => {
+                if (!previousPeriod || !periodsDiffer(previousPeriod, capturePeriodSnapshot())) return;
+                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = null;
+                await saveScheduleData({
+                    silent: true,
+                    year: previousPeriod.year,
+                    month: previousPeriod.month,
+                    scheduleType: previousPeriod.scheduleType
+                });
+            };
+
+            calendarBody.addEventListener('change', (e) => {
+                const t = e.target;
+                if (!t.classList.contains('agent-name-input') && !t.classList.contains('team-select-input')) return;
+                if (t.classList.contains('agent-name-input')) {
+                    updateSummary();
+                    adjustSelectWidth(t);
+                    applyPlaceholderStyle(t);
+                }
+                requestScheduleAutoSave();
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'hidden') return;
+                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = null;
+                saveScheduleData({ silent: true });
+            });
+
+            editableTitlePart.addEventListener('input', () => requestScheduleAutoSave());
+            editableTitlePart.addEventListener('blur', () => {
+                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = null;
+                saveScheduleData({ silent: true });
+            });
 
             const loadScheduleData = async (year, month, scheduleType) => {
                 if (!db || !auth.currentUser || !userId) {
@@ -1227,12 +1335,16 @@
                     } else {
                         // Se um título customizado foi salvo, ele sobrepõe o padrão
                         if(data?.title) {
-                            editableTitlePart.textContent = data.title;
-                            // SÓ limpa a locationPart se o título salvo NÃO for um dos padrões.
-                            // Se for um título padrão, a locationPart de handleDateChange é mantida.
-                            const defaultTitles = ['ESCALA ORDINÁRIA', 'ESCALA FIM DE SEMANA/FERIADO', 'ESCALA EXTRAORDINÁRIA - VIAGEM'];
-                            if (!defaultTitles.includes(data.title)) {
-                                locationPart.textContent = ''; // Limpa a localização, pois o título salvo é completo e customizado
+                            if (data.title === 'ESCALA EXTRAORDINÁRIA - VIAGEM') {
+                                editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA';
+                                locationPart.textContent = getSubtitleFromScheduleSelect();
+                            } else {
+                                editableTitlePart.textContent = data.title;
+                                // SÓ limpa a locationPart se o título salvo NÃO for um dos padrões.
+                                const defaultTitles = ['ESCALA ORDINÁRIA', 'ESCALA FIM DE SEMANA/FERIADO', 'ESCALA EXTRAORDINÁRIA'];
+                                if (!defaultTitles.includes(data.title)) {
+                                    locationPart.textContent = '';
+                                }
                             }
                         }
                         // Se não há título salvo (data.title é null), o título padrão de handleDateChange é mantido
@@ -1342,10 +1454,16 @@
                             <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
                             <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${typeColorClass}">${scheduleTypeName}</p>
                         `;
-                        card.addEventListener('click', () => {
+                        card.addEventListener('click', async () => {
+                            const prev = capturePeriodSnapshot();
                             yearSelect.value = year;
                             monthSelect.value = parseInt(month) - 1;
                             scheduleTypeSelect.value = type;
+                            try {
+                                await flushPeriodChangeSave(prev);
+                            } catch (err) {
+                                console.error('Erro ao salvar antes de abrir escala anterior:', err);
+                            }
                             handleDateChange();
                             tabsNav.querySelector('button[data-tab="current-scale"]').click();
                         });
@@ -1499,11 +1617,6 @@
                                 select.dataset.date = dateString;
                                 select.dataset.index = i;
                                 select.innerHTML = `<option value=""></option>${ALLOWED_NAMES.map(n => `<option value="${n}">${n}</option>`).join('')}`;
-                                select.addEventListener('change', (e) => {
-                                    updateSummary();
-                                    adjustSelectWidth(e.target);
-                                    applyPlaceholderStyle(e.target);
-                                });
                                 container.appendChild(select);
                             }
                         } else {
@@ -1526,6 +1639,12 @@
                     disableEditing();
                 }
             };
+
+            const getSubtitleFromScheduleSelect = () => {
+                const label = scheduleTypeSelect.options[scheduleTypeSelect.selectedIndex].text.trim();
+                const dashIdx = label.indexOf(' - ');
+                return dashIdx >= 0 ? ' - ' + label.slice(dashIdx + 3) : '';
+            };
             
             const updateTitle = (year, month) => {
                 const firstMonthName = PT_BR_MONTHS[month];
@@ -1540,27 +1659,29 @@
                 const year = parseInt(yearSelect.value);
                 const month = parseInt(monthSelect.value);
                 const scheduleType = scheduleTypeSelect.value;
+                const subtitleFromSelect = getSubtitleFromScheduleSelect();
                 
                 // Resetar dias extras ao trocar de escala (exceto se for recarregado do banco depois)
                 extraDates = [];
 
                 // CORREÇÃO: Define o título e a localização com base na seleção
+                // Subtítulo (nome) vem do texto da opção do seletor para ficar coincidente
                 // NOVO: Gerencia a visibilidade do botão Adicionar Dia
                 if (scheduleType === 'ordinaria') {
                     editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
-                    locationPart.textContent = ' - DNA. MARIANA';
+                    locationPart.textContent = subtitleFromSelect;
                     addDayButton.classList.add('hidden');
                 } else if (scheduleType === 'ordinaria_nelson') {
                     editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
-                    locationPart.textContent = ' - SR. NELSON';
+                    locationPart.textContent = subtitleFromSelect;
                     addDayButton.classList.add('hidden');
                 } else if (scheduleType === 'fimdesemana') {
                     editableTitlePart.textContent = 'ESCALA FIM DE SEMANA/FERIADO';
                     locationPart.textContent = '';
                     addDayButton.classList.add('hidden');
                 } else if (scheduleType === 'extraordinaria_viagem') {
-                    editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA - VIAGEM';
-                    locationPart.textContent = '';
+                    editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA';
+                    locationPart.textContent = subtitleFromSelect;
                     addDayButton.classList.remove('hidden');
                 } else {
                     editableTitlePart.textContent = 'ESCALA';
@@ -1570,8 +1691,17 @@
                 
                 generateCalendar(year, month, scheduleType);
                 updateTitle(year, month);
-                
-                // Lógica antiga de 'locationPart' removida daqui
+                periodSnapshotBeforeSelect = capturePeriodSnapshot();
+            };
+
+            const handleHeaderPeriodChange = async () => {
+                const prev = periodSnapshotBeforeSelect;
+                try {
+                    await flushPeriodChangeSave(prev);
+                } catch (err) {
+                    console.error('Erro ao salvar antes de trocar período:', err);
+                }
+                handleDateChange();
             };
 
             const initialize = () => {
@@ -1603,10 +1733,10 @@
                 handleDateChange();
             };
             
-            saveButton.addEventListener('click', saveScheduleData);
-            monthSelect.addEventListener('change', handleDateChange);
-            yearSelect.addEventListener('change', handleDateChange);
-            scheduleTypeSelect.addEventListener('change', handleDateChange);
+            saveButton.addEventListener('click', () => saveScheduleData({ silent: false }));
+            monthSelect.addEventListener('change', handleHeaderPeriodChange);
+            yearSelect.addEventListener('change', handleHeaderPeriodChange);
+            scheduleTypeSelect.addEventListener('change', handleHeaderPeriodChange);
             
             initialize(); 
         };
