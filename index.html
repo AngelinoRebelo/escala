@@ -7,6 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /*
+         * @page no nível raiz: Chrome/Edge costumam ignorar @page aninhado só dentro de @media print
+         * ao gerar PDF. 297mm × 210mm = A4 em paisagem (largura × altura).
+         */
+        @page {
+            size: 297mm 210mm;
+            margin: 8mm;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9; /* slate-100 */
@@ -138,13 +147,9 @@
                 line-height: 1.2;
             }
             
-            /* 6. Configuração da página */
-            @page {
-                size: A4 landscape;
-                margin: 8mm;
-            }
-            
-            /* 7. Todos os estilos de impressão restantes */
+            /* Orientação: definida pelo @page no topo do <style> (raiz) */
+
+            /* Tabela e demais estilos de impressão */
             #print-table {
                 width: 100% !important;
                 border-collapse: collapse !important;
