@@ -580,6 +580,35 @@
         // Importando a LibSQL (Turso) para Web
         import { createClient } from "https://esm.sh/@libsql/client@0.14.0/web";
 
+        /** Ative true apenas para depuração local (auth, impressão, etc.). */
+        const DEBUG = false;
+        const debugLog = (...args) => {
+            if (DEBUG) console.log(...args);
+        };
+
+        const FILE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+        const LEGACY_SAVED_TITLE_VIAGEM = 'ESCALA EXTRAORDINÁRIA - VIAGEM';
+        const SAVED_DEFAULT_TITLES = new Set([
+            'ESCALA ORDINÁRIA',
+            'ESCALA FIM DE SEMANA/FERIADO',
+            'ESCALA EXTRAORDINÁRIA',
+            LEGACY_SAVED_TITLE_VIAGEM
+        ]);
+        const NELSON_PREFILL_PERIOD = { year: 2025, month: 9 }; /* Outubro (índice 0–11) */
+
+        const CAL_ROW_WITH_MONTH = 8;
+        const CAL_ROW_DAYS_ONLY = 7;
+        const WEEKEND_START_COL = 5;
+
+        /** IDs Firestore: YYYY-MM-<tipo> com mês 1–12. */
+        function buildScheduleDocId(year, monthIndex, scheduleType) {
+            return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${scheduleType}`;
+        }
+
+        function printToneSuffix(element) {
+            return element?.classList.contains('bg-indigo-500') ? '--indigo' : '--blue';
+        }
+
         let db, auth;
         let appId;
         let userId;
@@ -609,7 +638,7 @@
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 `);
-                console.log("Turso: Conectado e tabela verificada.");
+                debugLog('Turso: conectado e tabela verificada.');
                 
                 // Verifica se há arquivo
                 checkLatestFile();
@@ -653,7 +682,7 @@
             }
             
             // Limite simples de segurança para evitar travar o navegador com strings base64 gigantes
-            if (file.size > 5 * 1024 * 1024) { // 5MB
+            if (file.size > FILE_UPLOAD_MAX_BYTES) {
                 alert("O arquivo é muito grande. O limite recomendado é 5MB.");
                 return;
             }
@@ -761,6 +790,28 @@
             const tursoUploadBtn = document.getElementById('turso-upload-btn');
             const tursoFileInput = document.getElementById('turso-file-input');
 
+            const canPersistSchedule = () =>
+                Boolean(db && auth?.currentUser && !auth.currentUser.isAnonymous && userId);
+
+            const PAST_SCALE_LIST_BY_TYPE = {
+                ordinaria: pastScalesListMariana,
+                ordinaria_nelson: pastScalesListNelson,
+                fimdesemana: pastScalesListFds,
+                extraordinaria_viagem: pastScalesListViagem
+            };
+            const SCHEDULE_TYPE_CARD_META = {
+                ordinaria: { label: 'Ordinária - Dna. Mariana', chipClass: 'bg-blue-100 text-blue-800' },
+                ordinaria_nelson: { label: 'Ordinária - Sr. Nelson', chipClass: 'bg-purple-100 text-purple-800' },
+                fimdesemana: { label: 'Fim de Semana/Feriado', chipClass: 'bg-green-100 text-green-800' },
+                extraordinaria_viagem: { label: 'Extraordinária - Viagem', chipClass: 'bg-cyan-100 text-cyan-800' }
+            };
+            const TAB_ID_TO_SCHEDULE_TYPE = {
+                'past-scales-mariana': 'ordinaria',
+                'past-scales-nelson': 'ordinaria_nelson',
+                'past-scales-fds': 'fimdesemana',
+                'past-scales-viagem': 'extraordinaria_viagem'
+            };
+
             // Inicializa Turso
             initTurso();
 
@@ -813,15 +864,11 @@
                 "2025-11-15": ["PENNA", "EDUARDO"]
             };
 
-            // --- FUNÇÃO DE IMPRESSÃO (REVERTIDA PARA LAYOUT DE CALENDÁRIO FIEL) ---
             function prepareForPrint() {
-                console.log("🖨️ Preparando para impressão (Layout de CALENDÁRIO)...");
-                
-                // Atualizar referência do mês e ano CORRETAMENTE
-                const month = parseInt(monthSelect.value);
-                const year = parseInt(yearSelect.value);
-                
-                console.log("Mês/Ano para impressão:", month, year);
+                debugLog('Preparando impressão (calendário)…');
+                const month = parseInt(monthSelect.value, 10);
+                const year = parseInt(yearSelect.value, 10);
+                debugLog('Mês/ano impressão:', month, year);
                 
                 // CORREÇÃO: Usar o título completo (título + localização)
                 const mainTitle = editableTitlePart.textContent || '';
@@ -840,97 +887,70 @@
                 // CORREÇÃO: Processar CADA LINHA da tabela principal
                 const calendarRows = calendarBody.querySelectorAll('tr');
                 
-                calendarRows.forEach((row, rowIndex) => {
+                calendarRows.forEach((row) => {
                     const cells = row.querySelectorAll('td');
                     const printRow = document.createElement('tr');
-                    
-                    let dayCellStartIndex = 0; // Default to 0 for 7-cell rows
+                    let dayCellStartIndex = 0;
 
-                    // Se a linha tem 8 células, é a primeira linha de um mês
-                    if (cells.length === 8) {
+                    if (cells.length === CAL_ROW_WITH_MONTH) {
                         const monthCell = document.createElement('td');
                         const srcMonth = cells[0];
-                        const monthTone = srcMonth.classList.contains('bg-indigo-500') ? 'print-month-cell--indigo' : 'print-month-cell--blue';
-                        monthCell.className = `print-month-cell ${monthTone}`;
+                        monthCell.className = `print-month-cell print-month-cell${printToneSuffix(srcMonth)}`;
                         monthCell.textContent = srcMonth.textContent || '';
-                        
-                        // Obter o rowspan da célula original e aplicar
-                        const originalRowSpan = cells[0].rowSpan;
-                        if (originalRowSpan > 1) {
-                            monthCell.rowSpan = originalRowSpan;
-                        }
-
+                        const originalRowSpan = srcMonth.rowSpan;
+                        if (originalRowSpan > 1) monthCell.rowSpan = originalRowSpan;
                         printRow.appendChild(monthCell);
-                        dayCellStartIndex = 1; // Começa a processar dias da célula 1
-                    } 
-                    // Se a linha tem 7 células, é uma linha subsequente
-                    else if (cells.length === 7) {
-                        dayCellStartIndex = 0; // Começa a processar dias da célula 0
-                    } 
-                    // Ignora linhas que não sejam de calendário (ex: vazias)
-                    else {
-                        return; // Pula esta iteração
+                        dayCellStartIndex = 1;
+                    } else if (cells.length === CAL_ROW_DAYS_ONLY) {
+                        dayCellStartIndex = 0;
+                    } else {
+                        return;
                     }
 
-                    // CORREÇÃO: Processar cada dia da semana (células 1-7 ou 0-6)
                     for (let i = dayCellStartIndex; i < cells.length; i++) {
                         const dayCell = cells[i];
                         const printDayCell = document.createElement('td');
                         const colInWeek = i - dayCellStartIndex;
-                        if (colInWeek >= 5) printDayCell.classList.add('print-day-cell-weekend');
+                        if (colInWeek >= WEEKEND_START_COL) printDayCell.classList.add('print-day-cell-weekend');
 
                         const dateLabel = dayCell.querySelector('.date-label');
-                        
+
                         if (dateLabel && dateLabel.textContent.trim() !== '') {
-                                // NOVO: Captura a data, que agora pode estar dentro de um span ou flex container
-                                const dateTextSpan = dateLabel.querySelector('span') || dateLabel;
-                                const dateText = dateTextSpan.textContent.trim();
-                                
-                                // NOVO: Captura a equipe (team), se existir
-                                const teamSelect = dayCell.querySelector('.team-select-input');
-                                let teamLabel = '';
-                                if (teamSelect && teamSelect.value) {
-                                    teamLabel = `<span style="font-size: 0.8em; opacity: 0.9; margin-left: 5px;">- ${teamSelect.value}</span>`;
+                            const dateTextSpan = dateLabel.querySelector('span') || dateLabel;
+                            const dateText = dateTextSpan.textContent.trim();
+                            const teamSelect = dayCell.querySelector('.team-select-input');
+                            let teamLabel = '';
+                            if (teamSelect?.value) {
+                                teamLabel = `<span style="font-size: 0.8em; opacity: 0.9; margin-left: 5px;">- ${teamSelect.value}</span>`;
+                            }
+                            const agentInputs = dayCell.querySelectorAll('.agent-name-input');
+                            const agentNames = [];
+                            agentInputs.forEach((input) => {
+                                const agentName = input.value.trim();
+                                if (!agentName) return;
+                                agentNames.push(agentName);
+                                if (agentName !== 'ESCALA') {
+                                    agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
                                 }
-
-                                const agentInputs = dayCell.querySelectorAll('.agent-name-input');
-                                const agentNames = [];
-                                
-                                // CORREÇÃO: Coletar nomes dos agentes
-                                agentInputs.forEach(input => {
-                                    const agentName = input.value.trim();
-                                    if (agentName && agentName !== '') {
-                                        agentNames.push(agentName);
-                                        // Contar para o resumo
-                                        if (agentName !== 'ESCALA') {
-                                            agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
-                                        }
-                                    }
-                                });
-                                
-                                const labelTone = dateLabel.classList.contains('bg-indigo-500') ? 'print-date-label--indigo' : 'print-date-label--blue';
-
-                                printDayCell.innerHTML = `
+                            });
+                            const labelTone = `print-date-label${printToneSuffix(dateLabel)}`;
+                            printDayCell.innerHTML = `
                                     <div class="print-date-label ${labelTone}">${dateText} ${teamLabel}</div>
                                     <div class="agent-names-container">
-                                        ${agentNames.map(name => 
+                                        ${agentNames.map((name) =>
                                             `<div class="static-agent-name ${name === 'ESCALA' ? 'blurred-text' : ''}">${name}</div>`
                                         ).join('')}
                                     </div>
                                 `;
-                            } else {
-                                // CORREÇÃO: Célula vazia
-                                printDayCell.innerHTML = '&nbsp;';
-                            }
-                            
-                            printRow.appendChild(printDayCell);
+                        } else {
+                            printDayCell.innerHTML = '&nbsp;';
                         }
-                        
-                        printBody.appendChild(printRow);
-                
-            });
-                
-                // CORREÇÃO: Renderizar resumo seguindo a ordem de ALLOWED_NAMES
+                        printRow.appendChild(printDayCell);
+                    }
+                    printBody.appendChild(printRow);
+                });
+
+                // Resumo na ordem de ALLOWED_NAMES
                 // Filtramos ALLOWED_NAMES para pegar apenas os que têm contagem > 0
                 const sortedAgents = ALLOWED_NAMES.filter(name => agentCounts.hasOwnProperty(name));
                 
@@ -952,11 +972,11 @@
                     });
                 }
                 
-                console.log("✅ Preparação para impressão (CALENDÁRIO) concluída.");
+                debugLog('Impressão (calendário) preparada.');
             }
 
             function handlePrint() {
-                console.log("🚀 Iniciando impressão...");
+                debugLog('Iniciando impressão…');
                 
                 // Pequeno delay para garantir que o DOM esteja pronto
                 setTimeout(() => {
@@ -1161,6 +1181,22 @@
                 document.body.removeChild(tempSpan);
             };
 
+            function collectScheduleFromDOM(bodyEl) {
+                const schedule = {};
+                bodyEl.querySelectorAll('.agent-name-input').forEach((field) => {
+                    if (!field.value) return;
+                    const date = field.dataset.date;
+                    const index = parseInt(field.dataset.index, 10);
+                    if (!schedule[date]) schedule[date] = ['', ''];
+                    schedule[date][index] = field.value;
+                });
+                const teams = {};
+                bodyEl.querySelectorAll('.team-select-input').forEach((field) => {
+                    if (field.value) teams[field.dataset.date] = field.value;
+                });
+                return { schedule, teams };
+            }
+
             const saveScheduleData = (opts = {}) => {
                 const run = async () => {
                     const silent = opts.silent === true;
@@ -1180,29 +1216,14 @@
                     const year = typeof opts.year === 'number' ? opts.year : parseInt(yearSelect.value, 10);
                     const month = typeof opts.month === 'number' ? opts.month : parseInt(monthSelect.value, 10);
                     const scheduleType = opts.scheduleType !== undefined ? opts.scheduleType : scheduleTypeSelect.value;
-                    const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
+                    const docId = buildScheduleDocId(year, month, scheduleType);
 
                     if (!silent) {
                         saveButton.disabled = true;
                         saveButton.textContent = 'Salvando...';
                     }
 
-                    const scheduleData = {};
-                    calendarBody.querySelectorAll('.agent-name-input').forEach(field => {
-                        const date = field.dataset.date;
-                        const index = parseInt(field.dataset.index);
-                        if (field.value) {
-                            if (!scheduleData[date]) scheduleData[date] = ['', ''];
-                            scheduleData[date][index] = field.value;
-                        }
-                    });
-
-                    const teamsData = {};
-                    calendarBody.querySelectorAll('.team-select-input').forEach(field => {
-                        if (field.value) {
-                            teamsData[field.dataset.date] = field.value;
-                        }
-                    });
+                    const { schedule: scheduleData, teams: teamsData } = collectScheduleFromDOM(calendarBody);
 
                     const dataToSave = {
                         title: editableTitlePart.textContent,
@@ -1243,7 +1264,7 @@
             };
 
             const requestScheduleAutoSave = () => {
-                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                if (!canPersistSchedule()) return;
                 clearTimeout(autoSaveDebounceTimer);
                 autoSaveDebounceTimer = setTimeout(() => {
                     autoSaveDebounceTimer = null;
@@ -1253,7 +1274,7 @@
 
             const flushPeriodChangeSave = async (previousPeriod) => {
                 if (!previousPeriod || !periodsDiffer(previousPeriod, capturePeriodSnapshot())) return;
-                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                if (!canPersistSchedule()) return;
                 clearTimeout(autoSaveDebounceTimer);
                 autoSaveDebounceTimer = null;
                 await saveScheduleData({
@@ -1277,7 +1298,7 @@
 
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'hidden') return;
-                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                if (!canPersistSchedule()) return;
                 clearTimeout(autoSaveDebounceTimer);
                 autoSaveDebounceTimer = null;
                 saveScheduleData({ silent: true });
@@ -1285,18 +1306,31 @@
 
             editableTitlePart.addEventListener('input', () => requestScheduleAutoSave());
             editableTitlePart.addEventListener('blur', () => {
-                if (!auth?.currentUser || auth.currentUser.isAnonymous || !db) return;
+                if (!canPersistSchedule()) return;
                 clearTimeout(autoSaveDebounceTimer);
                 autoSaveDebounceTimer = null;
                 saveScheduleData({ silent: true });
             });
+
+            const applyLoadedDocumentTitle = (data) => {
+                if (!data?.title) return;
+                if (data.title === LEGACY_SAVED_TITLE_VIAGEM) {
+                    editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA';
+                    locationPart.textContent = getSubtitleFromScheduleSelect();
+                    return;
+                }
+                editableTitlePart.textContent = data.title;
+                if (!SAVED_DEFAULT_TITLES.has(data.title)) {
+                    locationPart.textContent = '';
+                }
+            };
 
             const loadScheduleData = async (year, month, scheduleType) => {
                 if (!db || !auth.currentUser || !userId) {
                     console.error("Load failed: DB not initialized or user not authenticated.");
                     return;
                 }
-                const docId = `${year}-${String(month + 1).padStart(2, '0')}-${scheduleType}`;
+                const docId = buildScheduleDocId(year, month, scheduleType);
                 const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
                 
                 try {
@@ -1329,26 +1363,10 @@
                         return; // Interrompe esta execução
                     }
 
-                    if (!data && scheduleType === 'ordinaria_nelson' && year === 2025 && month === 9) {
+                    if (!data && scheduleType === 'ordinaria_nelson' && year === NELSON_PREFILL_PERIOD.year && month === NELSON_PREFILL_PERIOD.month) {
                         scheduleData = prefilledNelsonData;
-                        // O título principal já foi definido em handleDateChange
                     } else {
-                        // Se um título customizado foi salvo, ele sobrepõe o padrão
-                        if(data?.title) {
-                            if (data.title === 'ESCALA EXTRAORDINÁRIA - VIAGEM') {
-                                editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA';
-                                locationPart.textContent = getSubtitleFromScheduleSelect();
-                            } else {
-                                editableTitlePart.textContent = data.title;
-                                // SÓ limpa a locationPart se o título salvo NÃO for um dos padrões.
-                                const defaultTitles = ['ESCALA ORDINÁRIA', 'ESCALA FIM DE SEMANA/FERIADO', 'ESCALA EXTRAORDINÁRIA'];
-                                if (!defaultTitles.includes(data.title)) {
-                                    locationPart.textContent = '';
-                                }
-                            }
-                        }
-                        // Se não há título salvo (data.title é null), o título padrão de handleDateChange é mantido
-                        
+                        applyLoadedDocumentTitle(data);
                         scheduleData = data?.schedule || {};
                     }
 
@@ -1392,29 +1410,25 @@
                     console.error("Load previous scales failed: DB not initialized or user not authenticated.");
                     return;
                 }
-                
-                let listEl;
-                if (targetType === 'ordinaria') {
-                    listEl = pastScalesListMariana;
-                } else if (targetType === 'ordinaria_nelson') {
-                    listEl = pastScalesListNelson;
-                } else if (targetType === 'fimdesemana') {
-                    listEl = pastScalesListFds;
-                } else if (targetType === 'extraordinaria_viagem') {
-                    listEl = pastScalesListViagem;
+
+                const listEl = PAST_SCALE_LIST_BY_TYPE[targetType];
+                if (!listEl) {
+                    console.error('Tipo de escala desconhecido:', targetType);
+                    return;
                 }
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
-                
-                const schedulesRef = collection(db, `schedules/${appId}/periods`); 
+
+                const schedulesRef = collection(db, `schedules/${appId}/periods`);
+
                 try {
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
-                    querySnapshot.forEach((doc) => {
-                        const [year, month, ...typeParts] = doc.id.split('-'); 
+                    querySnapshot.forEach((docSnap) => {
+                        const [y, m, ...typeParts] = docSnap.id.split('-');
                         const type = typeParts.join('-');
                         if (type === targetType) {
-                            scales.push({ id: doc.id, ...doc.data() });
+                            scales.push({ id: docSnap.id, ...docSnap.data() });
                         }
                     });
 
@@ -1429,35 +1443,20 @@
                     scales.forEach(scale => {
                         const [year, month, ...typeParts] = scale.id.split('-');
                         const type = typeParts.join('-');
-                        const monthName = PT_BR_MONTHS[parseInt(month) - 1];
-                        
-                        let scheduleTypeName;
-                        let typeColorClass;
-                        if (type === 'ordinaria') {
-                            scheduleTypeName = 'Ordinária - Dna. Mariana';
-                            typeColorClass = 'bg-blue-100 text-blue-800';
-                        } else if (type === 'ordinaria_nelson') {
-                            scheduleTypeName = 'Ordinária - Sr. Nelson';
-                            typeColorClass = 'bg-purple-100 text-purple-800';
-                        } else if (type === 'fimdesemana') {
-                            scheduleTypeName = 'Fim de Semana/Feriado';
-                            typeColorClass = 'bg-green-100 text-green-800';
-                        } else if (type === 'extraordinaria_viagem') {
-                            scheduleTypeName = 'Extraordinária - Viagem';
-                            typeColorClass = 'bg-cyan-100 text-cyan-800';
-                        }
+                        const monthName = PT_BR_MONTHS[parseInt(month, 10) - 1];
+                        const meta = SCHEDULE_TYPE_CARD_META[type] || { label: type, chipClass: 'bg-slate-100 text-slate-700' };
 
                         const card = document.createElement('div');
                         card.className = 'block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
                         card.innerHTML = `
                             <h3 class="font-bold text-slate-800">${scale.title}</h3>
                             <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
-                            <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${typeColorClass}">${scheduleTypeName}</p>
+                            <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${meta.chipClass}">${meta.label}</p>
                         `;
                         card.addEventListener('click', async () => {
                             const prev = capturePeriodSnapshot();
                             yearSelect.value = year;
-                            monthSelect.value = parseInt(month) - 1;
+                            monthSelect.value = parseInt(month, 10) - 1;
                             scheduleTypeSelect.value = type;
                             try {
                                 await flushPeriodChangeSave(prev);
@@ -1483,15 +1482,8 @@
                     tabContents.forEach(content => {
                         content.id === `${tabId}-view` ? content.classList.remove('hidden') : content.classList.add('hidden');
                     });
-                    if (tabId === 'past-scales-mariana') {
-                        loadPreviousScales('ordinaria');
-                    } else if (tabId === 'past-scales-nelson') {
-                        loadPreviousScales('ordinaria_nelson');
-                    } else if (tabId === 'past-scales-fds') {
-                        loadPreviousScales('fimdesemana');
-                    } else if (tabId === 'past-scales-viagem') {
-                        loadPreviousScales('extraordinaria_viagem');
-                    }
+                    const scheduleTypeForTab = TAB_ID_TO_SCHEDULE_TYPE[tabId];
+                    if (scheduleTypeForTab) loadPreviousScales(scheduleTypeForTab);
                 }
             });
 
@@ -1654,41 +1646,28 @@
                 if (month === 11) { yearOfSecondMonth++; }
                 dateTitlePart.textContent = ` - ${firstMonthName}/${secondMonthName} - ${yearOfSecondMonth}`;
             };
+
+            const SCHEDULE_HEADER_UI = {
+                ordinaria: { mainTitle: 'ESCALA ORDINÁRIA', useSelectSubtitle: true, showAddDay: false },
+                ordinaria_nelson: { mainTitle: 'ESCALA ORDINÁRIA', useSelectSubtitle: true, showAddDay: false },
+                fimdesemana: { mainTitle: 'ESCALA FIM DE SEMANA/FERIADO', useSelectSubtitle: false, showAddDay: false },
+                extraordinaria_viagem: { mainTitle: 'ESCALA EXTRAORDINÁRIA', useSelectSubtitle: true, showAddDay: true }
+            };
+            const SCHEDULE_HEADER_FALLBACK = { mainTitle: 'ESCALA', useSelectSubtitle: false, showAddDay: false };
             
             const handleDateChange = () => {
-                const year = parseInt(yearSelect.value);
-                const month = parseInt(monthSelect.value);
+                const year = parseInt(yearSelect.value, 10);
+                const month = parseInt(monthSelect.value, 10);
                 const scheduleType = scheduleTypeSelect.value;
                 const subtitleFromSelect = getSubtitleFromScheduleSelect();
-                
-                // Resetar dias extras ao trocar de escala (exceto se for recarregado do banco depois)
+
                 extraDates = [];
 
-                // CORREÇÃO: Define o título e a localização com base na seleção
-                // Subtítulo (nome) vem do texto da opção do seletor para ficar coincidente
-                // NOVO: Gerencia a visibilidade do botão Adicionar Dia
-                if (scheduleType === 'ordinaria') {
-                    editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
-                    locationPart.textContent = subtitleFromSelect;
-                    addDayButton.classList.add('hidden');
-                } else if (scheduleType === 'ordinaria_nelson') {
-                    editableTitlePart.textContent = 'ESCALA ORDINÁRIA';
-                    locationPart.textContent = subtitleFromSelect;
-                    addDayButton.classList.add('hidden');
-                } else if (scheduleType === 'fimdesemana') {
-                    editableTitlePart.textContent = 'ESCALA FIM DE SEMANA/FERIADO';
-                    locationPart.textContent = '';
-                    addDayButton.classList.add('hidden');
-                } else if (scheduleType === 'extraordinaria_viagem') {
-                    editableTitlePart.textContent = 'ESCALA EXTRAORDINÁRIA';
-                    locationPart.textContent = subtitleFromSelect;
-                    addDayButton.classList.remove('hidden');
-                } else {
-                    editableTitlePart.textContent = 'ESCALA';
-                    locationPart.textContent = '';
-                    addDayButton.classList.add('hidden');
-                }
-                
+                const ui = SCHEDULE_HEADER_UI[scheduleType] || SCHEDULE_HEADER_FALLBACK;
+                editableTitlePart.textContent = ui.mainTitle;
+                locationPart.textContent = ui.useSelectSubtitle ? subtitleFromSelect : '';
+                addDayButton.classList.toggle('hidden', !ui.showAddDay);
+
                 generateCalendar(year, month, scheduleType);
                 updateTitle(year, month);
                 periodSnapshotBeforeSelect = capturePeriodSnapshot();
@@ -1755,22 +1734,17 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                setLogLevel('Debug');
+                if (DEBUG) setLogLevel('Debug');
 
                 onAuthStateChanged(auth, user => {
                     if (user) {
-                        console.log("Autenticado com sucesso com UID:", user.uid);
-                        if (user.isAnonymous) {
-                            console.log("Utilizador é ANÓNIMO. Permissões: LEITURA");
-                        } else {
-                            console.log("Utilizador é NÃO-ANÓNIMO. Permissões: LEITURA/ESCRITA");
-                        }
+                        debugLog('Autenticado, UID:', user.uid, user.isAnonymous ? '(anônimo)' : '(sessão completa)');
                         userId = user.uid;
                         
                         initializeAppLogic(); 
                         
                     } else {
-                        console.log("Usuário deslogado. Tentando login anônimo...");
+                        debugLog('Sem usuário; tentando login anônimo…');
                         signInAnonymously(auth).catch(anonError => {
                             console.error("Login anônimo falhou:", anonError);
                         });
