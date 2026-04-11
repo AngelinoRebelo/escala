@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Painel de Escala</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -16,9 +17,62 @@
             margin: 8mm;
         }
 
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9; /* slate-100 */
+            touch-action: manipulation;
+            padding-left: env(safe-area-inset-left, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
+        }
+
+        /* Rolagem horizontal do calendário: inércia no iOS e menos “puxar” a página */
+        .calendar-scroll {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scroll-behavior: smooth;
+            touch-action: pan-x pan-y;
+        }
+
+        .tabs-scroll {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+        }
+        .tabs-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+        .tabs-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .calendar-day-cell {
+            min-height: 5.5rem;
+            padding: 0.125rem;
+            box-sizing: border-box;
+        }
+        @media (min-width: 640px) {
+            .calendar-day-cell {
+                min-height: 6rem;
+                padding: 0.25rem;
+            }
+        }
+
+        @media (max-width: 639px) {
+            .agent-name-input {
+                font-size: 0.75rem;
+                padding: 4px 4px;
+            }
+            .team-select-input {
+                font-size: 0.65rem;
+                min-height: 1.5rem;
+            }
         }
         .agent-name-input {
             -webkit-appearance: none;
@@ -81,16 +135,27 @@
         }
 
         .tab-button {
-            padding: 0.5rem 0.25rem;
+            padding: 0.5rem 0.75rem;
             border-radius: 0.375rem; /* rounded-md */
             font-weight: 600;
-            transition: all 0.2s ease-in-out;
+            transition: background-color 0.15s ease, transform 0.1s ease;
             font-size: 0.8rem;
-            width: 100%;
+            width: auto;
+            min-height: 2.75rem;
+            min-width: max-content;
             text-align: center;
+            flex-shrink: 0;
+            white-space: nowrap;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        .tab-button:hover {
-            background-color: #e2e8f0; /* slate-200 */
+        .tab-button:active {
+            transform: scale(0.98);
+        }
+        @media (hover: hover) {
+            .tab-button:not(.active):hover {
+                background-color: #e2e8f0; /* slate-200 */
+            }
         }
         .tab-button.active {
             background-color: #4f46e5; /* indigo-600 */
@@ -356,11 +421,11 @@
     </style>
 </head>
 <!-- Ajuste de padding no body para mobile -->
-<body class="p-2 sm:p-6 md:p-8">
+<body class="pt-2 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] sm:pt-6 sm:px-6 sm:pb-6 md:pt-8 md:px-8 md:pb-8">
 
     <!-- Modal de Login -->
     <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm mx-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-sm mx-4 max-h-[min(90dvh,100vh)] overflow-y-auto overscroll-contain">
             <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">Acesso Restrito</h2>
             <form id="login-form">
                 <div class="mb-4">
@@ -377,27 +442,27 @@
         </div>
     </div>
 
-    <main class="max-w-none mx-auto bg-white p-3 sm:p-6 rounded-2xl shadow-lg">
+    <main class="max-w-none mx-auto bg-white px-2.5 py-3 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
         <!-- Cabeçalho com Título e Controles -->
-        <div id="header" class="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full mb-4 gap-4">
-            <div class="title-container flex-grow">
-                 <h1 class="text-xl sm:text-2xl font-bold text-slate-700">
+        <div id="header" class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between w-full mb-3 sm:mb-4 gap-3 sm:gap-4">
+            <div class="title-container flex-grow min-w-0">
+                 <h1 class="text-lg leading-snug sm:text-xl md:text-2xl font-bold text-slate-700 break-words">
                     <span id="editable-title-part" contenteditable="false" class="rounded-md px-2 block sm:inline">ESCALA ORDINÁRIA</span>
                     <span id="location-part" class="block sm:inline uppercase"></span>
                     <span id="date-title-part" class="block sm:inline uppercase"></span>
                 </h1>
             </div>
-            <div id="controls-header" class="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto">
-                 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                    <select id="schedule-type-select" class="flex-grow sm:flex-grow-0 p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer max-w-full">
+            <div id="controls-header" class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-4 w-full lg:w-auto">
+                 <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto min-w-0">
+                    <select id="schedule-type-select" class="flex-grow sm:flex-grow-0 w-full min-h-11 py-2.5 px-3 border border-slate-300 rounded-lg shadow-sm bg-white text-base sm:text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer max-w-full touch-manipulation">
                         <option value="ordinaria">Escala Ordinária - Dna. Mariana</option>
                         <option value="ordinaria_nelson">Escala Ordinária - Sr. Nelson</option>
                         <option value="fimdesemana">Fim de Semana/Feriado</option>
                         <option value="extraordinaria_viagem">Escala Extraordinária - Viagem</option>
                     </select>
-                    <div class="flex gap-2 flex-grow sm:flex-grow-0">
-                        <select id="month-select" class="flex-grow p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
-                        <select id="year-select" class="w-20 p-2 border border-slate-300 rounded-md shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"></select>
+                    <div class="flex gap-2 flex-grow sm:flex-grow-0 min-w-0">
+                        <select id="month-select" class="flex-1 min-w-0 min-h-11 py-2.5 px-3 border border-slate-300 rounded-lg shadow-sm bg-white text-base sm:text-sm text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer touch-manipulation"></select>
+                        <select id="year-select" class="w-[4.5rem] shrink-0 min-h-11 py-2.5 px-2 border border-slate-300 rounded-lg shadow-sm bg-white text-base sm:text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer touch-manipulation"></select>
                     </div>
                  </div>
                  
@@ -405,18 +470,18 @@
                  <input type="date" id="extra-date-input" class="hidden">
                  
                  <!-- Botão para adicionar dia (visível apenas na Viagem) -->
-                 <button id="add-day-button" class="hidden px-3 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all flex items-center gap-1">
+                 <button id="add-day-button" class="hidden min-h-11 px-3 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors flex items-center justify-center gap-1 touch-manipulation">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     Dia
                  </button>
 
-                 <div class="flex gap-2 w-full sm:w-auto justify-end">
-                     <button id="login-button" class="px-4 py-2 bg-slate-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-slate-700">Login</button>
-                     <button id="logout-button" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-red-700 hidden">Sair</button>
-                     <button id="save-button" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">Salvar</button>
+                 <div class="flex flex-wrap gap-2 w-full sm:w-auto justify-stretch sm:justify-end">
+                     <button type="button" id="login-button" class="flex-1 sm:flex-none min-h-11 px-4 py-2 bg-slate-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-slate-700 active:bg-slate-800 touch-manipulation">Login</button>
+                     <button type="button" id="logout-button" class="flex-1 sm:flex-none min-h-11 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-red-700 active:bg-red-800 hidden touch-manipulation">Sair</button>
+                     <button type="button" id="save-button" class="flex-1 sm:flex-none min-h-11 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors touch-manipulation">Salvar</button>
                      <!-- BOTÃO DE IMPRESSÃO VISÍVEL E FUNCIONAL -->
                      <div id="print-button-container" class="relative flex items-center justify-center">
-                        <button id="print-button" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all flex items-center gap-2" title="Imprimir Escala">
+                        <button type="button" id="print-button" class="flex-1 sm:flex-none min-h-11 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex items-center justify-center gap-2 touch-manipulation w-full sm:w-auto" title="Imprimir Escala">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-printer">
                                 <polyline points="6 9 6 2 18 2 18 9"></polyline>
                                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -463,42 +528,43 @@
         </div>
         
         <!-- Navegação das Abas -->
-        <nav id="tabs-nav" class="flex flex-wrap space-x-1 sm:space-x-2 p-1 bg-slate-100 rounded-lg mb-6 overflow-x-auto">
-            <button data-tab="current-scale" class="tab-button active flex-shrink-0 w-auto px-3">Escala Atual</button>
-            <button data-tab="past-scales-mariana" class="tab-button flex-shrink-0 w-auto px-3">Dna. Mariana</button>
-            <button data-tab="past-scales-nelson" class="tab-button flex-shrink-0 w-auto px-3">Sr. Nelson</button>
-            <button data-tab="past-scales-fds" class="tab-button flex-shrink-0 w-auto px-3">FDS</button>
-            <button data-tab="past-scales-viagem" class="tab-button flex-shrink-0 w-auto px-3">Viagem</button>
+        <nav id="tabs-nav" class="tabs-scroll flex flex-nowrap gap-1.5 sm:gap-2 p-2 bg-slate-100 rounded-xl mb-4 sm:mb-6 overflow-x-auto">
+            <button type="button" data-tab="current-scale" class="tab-button active px-3 sm:px-4">Escala Atual</button>
+            <button type="button" data-tab="past-scales-mariana" class="tab-button px-3 sm:px-4">Dna. Mariana</button>
+            <button type="button" data-tab="past-scales-nelson" class="tab-button px-3 sm:px-4">Sr. Nelson</button>
+            <button type="button" data-tab="past-scales-fds" class="tab-button px-3 sm:px-4">FDS</button>
+            <button type="button" data-tab="past-scales-viagem" class="tab-button px-3 sm:px-4">Viagem</button>
         </nav>
 
         <!-- Conteúdo da Aba "Escala Atual" -->
         <div id="current-scale-view" class="tab-content">
-            <div id="print-layout-container" class="flex flex-col lg:flex-row w-full gap-6">
+            <p class="lg:hidden text-center text-[11px] text-slate-500 mb-2 px-1">Deslize o calendário para os lados para ver todos os dias.</p>
+            <div id="print-layout-container" class="flex flex-col lg:flex-row w-full gap-4 sm:gap-6">
                 <!-- Calendário + setas mês anterior / próximo -->
                 <div class="flex-grow flex items-stretch gap-1.5 sm:gap-2 min-w-0">
                     <button type="button" id="calendar-prev-month" title="Mês anterior" aria-label="Mês anterior"
-                        class="calendar-month-nav flex-shrink-0 flex items-center justify-center w-9 sm:w-10 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-200 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                        class="calendar-month-nav flex-shrink-0 flex items-center justify-center w-11 h-11 sm:w-10 sm:h-auto min-h-[44px] min-w-[44px] rounded-lg border border-slate-300 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-200 active:bg-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors touch-manipulation disabled:opacity-40 disabled:pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
                     </button>
-                    <div class="flex-grow table-container overflow-x-auto border border-slate-200 rounded-lg shadow-sm min-w-0">
-                    <table class="w-full border-collapse text-center table-fixed min-w-[900px]">
+                    <div class="calendar-scroll flex-grow table-container overflow-x-auto border border-slate-200 rounded-lg shadow-sm min-w-0">
+                    <table class="w-full border-collapse text-center table-fixed min-w-[720px] sm:min-w-[900px]">
                         <thead>
-                            <tr class="bg-slate-900 text-white uppercase text-xs sm:text-sm tracking-wider">
-                                <th class="p-3 rounded-tl-lg font-bold" style="width: 50px;">Mês</th>
-                                <th class="p-3 font-bold">SEGUNDA</th>
-                                <th class="p-3 font-bold">TERÇA</th>
-                                <th class="p-3 font-bold">QUARTA</th>
-                                <th class="p-3 font-bold">QUINTA</th>
-                                <th class="p-3 font-bold">SEXTA</th>
-                                <th class="p-3 font-bold">SÁBADO</th>
-                                <th class="p-3 rounded-tr-lg font-bold">DOMINGO</th>
+                            <tr class="bg-slate-900 text-white uppercase tracking-wider text-[0.62rem] leading-tight sm:text-xs md:text-sm">
+                                <th class="p-1.5 sm:p-3 rounded-tl-lg font-bold" style="width: 50px;">Mês</th>
+                                <th class="p-1 sm:p-3 font-bold"><span class="sm:hidden">SEG</span><span class="hidden sm:inline">SEGUNDA</span></th>
+                                <th class="p-1 sm:p-3 font-bold"><span class="sm:hidden">TER</span><span class="hidden sm:inline">TERÇA</span></th>
+                                <th class="p-1 sm:p-3 font-bold"><span class="sm:hidden">QUA</span><span class="hidden sm:inline">QUARTA</span></th>
+                                <th class="p-1 sm:p-3 font-bold"><span class="sm:hidden">QUI</span><span class="hidden sm:inline">QUINTA</span></th>
+                                <th class="p-1 sm:p-3 font-bold"><span class="sm:hidden">SEX</span><span class="hidden sm:inline">SEXTA</span></th>
+                                <th class="p-1 sm:p-3 font-bold"><span class="sm:hidden">SÁB</span><span class="hidden sm:inline">SÁBADO</span></th>
+                                <th class="p-1 sm:p-3 rounded-tr-lg font-bold"><span class="sm:hidden">DOM</span><span class="hidden sm:inline">DOMINGO</span></th>
                             </tr>
                         </thead>
                         <tbody id="calendar-body" class="bg-white"></tbody>
                     </table>
                     </div>
                     <button type="button" id="calendar-next-month" title="Próximo mês" aria-label="Próximo mês"
-                        class="calendar-month-nav flex-shrink-0 flex items-center justify-center w-9 sm:w-10 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-200 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                        class="calendar-month-nav flex-shrink-0 flex items-center justify-center w-11 h-11 sm:w-10 sm:h-auto min-h-[44px] min-w-[44px] rounded-lg border border-slate-300 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-200 active:bg-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors touch-manipulation disabled:opacity-40 disabled:pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </button>
                 </div>
@@ -1569,7 +1635,7 @@
                         const colorClass = monthKey === startDate.getMonth() ? 'bg-indigo-500' : 'bg-blue-500';
                         
                         const monthCell = document.createElement('td');
-                        monthCell.className = `font-bold text-sm text-white p-2 ${colorClass}`;
+                        monthCell.className = `font-bold text-xs sm:text-sm text-white p-1 sm:p-2 ${colorClass}`;
                         monthCell.style.width = '50px'; // <-- CORREÇÃO: Força a largura
                         monthCell.style.writingMode = 'vertical-rl';
                         monthCell.style.textOrientation = 'mixed';
@@ -1585,7 +1651,7 @@
 
                     week.forEach((day, dayIndex) => {
                         const cell = document.createElement('td');
-                        cell.className = `border-2 border-slate-300 h-24 p-1 align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
+                        cell.className = `border-2 border-slate-300 calendar-day-cell align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
                         if (day) {
                             const monthShort = day.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
                             const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
@@ -1610,8 +1676,8 @@
                             // MODIFICADO: Estrutura do header da data para incluir o seletor
                             cell.innerHTML = `
                                 <div class="mb-1">
-                                    <div class="date-label block w-full ${dateColorClass} py-1 rounded-md shadow-sm flex justify-between items-center px-2">
-                                        <span class="text-base font-black">${day.getDate()}/${monthShort}</span>
+                                    <div class="date-label block w-full ${dateColorClass} py-0.5 sm:py-1 rounded-md shadow-sm flex justify-between items-center px-1 sm:px-2 gap-1">
+                                        <span class="text-sm sm:text-base font-black tabular-nums">${day.getDate()}/${monthShort}</span>
                                         ${teamSelectHtml}
                                     </div>
                                 </div>
