@@ -1379,6 +1379,7 @@
                     btn.classList.toggle('opacity-50', !isViagem);
                     btn.classList.toggle('cursor-not-allowed', !isViagem);
                 });
+                refreshVisiblePastScalesList();
             };
 
             const disableEditing = () => {
@@ -1400,6 +1401,7 @@
                 [addBlockButton, clearViagemButton].forEach((btn) => {
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
                 });
+                refreshVisiblePastScalesList();
             };
             
             const resetSessionTimer = () => {
@@ -1428,6 +1430,12 @@
                 deleteScaleError.classList.add('hidden');
                 deleteScaleError.textContent = '';
                 pendingDeleteScale = null;
+            };
+
+            const refreshVisiblePastScalesList = () => {
+                const activeTab = tabsNav.querySelector('.tab-button.active');
+                const scheduleTypeForTab = TAB_ID_TO_SCHEDULE_TYPE[activeTab?.dataset.tab];
+                if (scheduleTypeForTab) loadPreviousScales(scheduleTypeForTab);
             };
 
             const openDeleteScaleModal = (scale) => {
@@ -1472,7 +1480,7 @@
                         scheduleTypeSelect.value
                     );
                     if (pendingDeleteScale.id === currentDocId) {
-                        viagemDates = [];
+                        if (scheduleTypeSelect.value === 'extraordinaria_viagem') viagemDates = [];
                         handleDateChange();
                     }
 
@@ -1556,6 +1564,7 @@
             loginModal.addEventListener('click', (e) => {
                 if (e.target === loginModal) {
                     loginModal.classList.add('hidden');
+                    pendingDeleteScale = null;
                 }
             });
 
@@ -1576,6 +1585,10 @@
                     loginModal.classList.add('hidden');
                     loginError.classList.add('hidden');
                     e.target.reset();
+                    refreshVisiblePastScalesList();
+                    if (pendingDeleteScale) {
+                        openDeleteScaleModal(pendingDeleteScale);
+                    }
 
                 } catch (error) {
                     console.error("Falha no login do Firebase:", error.code);
@@ -1909,14 +1922,13 @@
                         const type = typeParts.join('-');
                         const monthName = PT_BR_MONTHS[parseInt(month, 10) - 1];
                         const meta = SCHEDULE_TYPE_CARD_META[type] || { label: type, chipClass: 'bg-slate-100 text-slate-700' };
-                        const canDelete = canPersistSchedule();
 
                         const card = document.createElement('div');
                         card.className = 'scale-card block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
                         card.innerHTML = `
-                            ${canDelete ? `<button type="button" class="scale-delete-btn" aria-label="Excluir escala" title="Excluir escala">
+                            <button type="button" class="scale-delete-btn" aria-label="Excluir escala" title="Excluir escala">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            </button>` : ''}
+                            </button>
                             <h3 class="font-bold text-slate-800 pr-6">${scale.title}</h3>
                             <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
                             <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${meta.chipClass}">${meta.label}</p>
@@ -1935,9 +1947,15 @@
                             tabsNav.querySelector('button[data-tab="current-scale"]').click();
                         });
                         const deleteBtn = card.querySelector('.scale-delete-btn');
-                        deleteBtn?.addEventListener('click', (e) => {
+                        deleteBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            openDeleteScaleModal({ id: scale.id, title: scale.title, type: targetType });
+                            const scaleInfo = { id: scale.id, title: scale.title, type: targetType };
+                            if (!canPersistSchedule()) {
+                                pendingDeleteScale = scaleInfo;
+                                loginModal.classList.remove('hidden');
+                                return;
+                            }
+                            openDeleteScaleModal(scaleInfo);
                         });
                         listEl.appendChild(card);
                     });
