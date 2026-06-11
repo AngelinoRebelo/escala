@@ -173,6 +173,79 @@
         .date-header-input:disabled::-webkit-calendar-picker-indicator {
             display: none;
         }
+        /* Escala Viagem: slots vazios e ações no hover */
+        .viagem-empty-slot {
+            min-height: 4.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.375rem;
+            background: #fff;
+            margin: 0.125rem;
+        }
+        @media (min-width: 640px) {
+            .viagem-empty-slot { min-height: 5rem; }
+        }
+        .viagem-day-cell--filled .date-label {
+            position: relative;
+        }
+        .viagem-slot-action {
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .viagem-day-cell:hover .viagem-slot-action,
+        .viagem-day-cell:focus-within .viagem-slot-action {
+            opacity: 1;
+        }
+        .calendar-readonly .viagem-slot-action {
+            display: none !important;
+        }
+        .viagem-slot-action--add {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 9999px;
+            background: #10b981;
+            color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+        .viagem-slot-action--add:hover {
+            background: #059669;
+        }
+        .viagem-slot-action--remove {
+            position: absolute;
+            top: 50%;
+            right: 0.2rem;
+            transform: translateY(-50%);
+            width: 1.35rem;
+            height: 1.35rem;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.22);
+            color: #fff;
+            font-size: 1rem;
+            line-height: 1;
+            font-weight: 700;
+        }
+        .viagem-slot-action--remove:hover {
+            background: rgba(239, 68, 68, 0.9);
+        }
+        .viagem-date-text {
+            font-size: 0.72rem;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+            line-height: 1.2;
+            padding-right: 1.1rem;
+        }
+        @media (min-width: 640px) {
+            .viagem-date-text { font-size: 0.82rem; }
+        }
         .team-select-input option {
             color: #333; /* Texto escuro para as opções no dropdown */
             background-color: white;
@@ -520,24 +593,24 @@
                     </div>
                  </div>
                  
-                 <!-- Input de data oculto para seleção de dia -->
+                 <!-- Input de data oculto (reserva) -->
                  <input type="date" id="extra-date-input" class="hidden">
-                 
-                 <!-- Controles de datas personalizadas (visível na Viagem) -->
+
+                 <!-- Controles da escala Viagem -->
                  <div id="custom-date-controls" class="hidden flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full lg:justify-end">
-                    <button id="add-day-button" type="button" class="min-h-11 lg:min-h-9 px-3 py-2 lg:py-1.5 bg-emerald-600 text-white text-sm lg:text-xs font-semibold rounded-lg shadow-sm hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors flex items-center justify-center gap-1 touch-manipulation w-full sm:w-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        Dia
-                    </button>
                     <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <input type="date" id="block-start-input" title="Início do bloco" class="flex-1 sm:flex-initial min-h-11 lg:min-h-9 py-2 lg:py-1.5 px-2 border border-slate-300 rounded-lg shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 touch-manipulation">
                         <span class="text-slate-500 text-xs font-medium self-center shrink-0">até</span>
                         <input type="date" id="block-end-input" title="Fim do bloco" class="flex-1 sm:flex-initial min-h-11 lg:min-h-9 py-2 lg:py-1.5 px-2 border border-slate-300 rounded-lg shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 touch-manipulation">
                         <button id="add-block-button" type="button" class="min-h-11 lg:min-h-9 px-3 py-2 lg:py-1.5 bg-teal-600 text-white text-sm lg:text-xs font-semibold rounded-lg shadow-sm hover:bg-teal-700 active:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors flex items-center justify-center gap-1 touch-manipulation w-full sm:w-auto">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            Bloco
+                            Adicionar bloco
                         </button>
                     </div>
+                    <button id="clear-viagem-button" type="button" class="min-h-11 lg:min-h-9 px-3 py-2 lg:py-1.5 bg-red-600 text-white text-sm lg:text-xs font-semibold rounded-lg shadow-sm hover:bg-red-700 active:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors flex items-center justify-center gap-1 touch-manipulation w-full sm:w-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        Limpar escala
+                    </button>
                  </div>
 
                  <div class="flex flex-col gap-1 w-full lg:w-full min-w-0">
@@ -922,12 +995,12 @@
             const pastScalesListNelson = document.getElementById('past-scales-list-nelson');
             const pastScalesListFds = document.getElementById('past-scales-list-fds');
             const pastScalesListViagem = document.getElementById('past-scales-list-viagem');
-            const addDayButton = document.getElementById('add-day-button');
             const addBlockButton = document.getElementById('add-block-button');
+            const clearViagemButton = document.getElementById('clear-viagem-button');
             const customDateControls = document.getElementById('custom-date-controls');
             const blockStartInput = document.getElementById('block-start-input');
             const blockEndInput = document.getElementById('block-end-input');
-            const extraDateInput = document.getElementById('extra-date-input'); // NOVO: Input de data
+            const calendarTable = calendarBody.closest('table');
             
             // Elementos da view de impressão
             const printView = document.getElementById('print-view');
@@ -965,10 +1038,8 @@
             // Inicializa Turso
             initTurso();
 
-            // Variáveis para datas personalizadas
-            let extraDates = [];
-            let dateBlocks = [];
-            let excludedDates = [];
+            // Datas da escala Viagem (YYYY-MM-DD)
+            let viagemDates = [];
             let autoSaveDebounceTimer = null;
             const AUTOSAVE_DEBOUNCE_MS = 600;
             let periodSnapshotBeforeSelect = null;
@@ -1013,40 +1084,73 @@
                 const monthShort = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
                 return `${d.getDate()}/${monthShort}`;
             };
-            const isDateInDefaultPeriod = (dateStr, year, month) => {
-                const d = parseISODate(dateStr);
+            const formatViagemDateDisplay = (isoStr) => {
+                const d = parseISODate(isoStr);
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                return `${dd}/${mm}/${d.getFullYear()}`;
+            };
+            const getDefaultPeriodDates = (year, month) => {
+                const dates = [];
                 const start = new Date(year, month, 16);
                 const end = new Date(year, month + 1, 15);
-                return d >= start && d <= end;
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    dates.push(formatISODate(d));
+                }
+                return dates;
             };
-            const expandDateBlocksToDates = () => {
-                const dates = new Set();
-                dateBlocks.forEach((block) => {
-                    if (!block.start || !block.end) return;
+            const resolveViagemDatesFromSaved = (data, year, month) => {
+                if (Array.isArray(data?.viagemDates)) {
+                    return [...data.viagemDates].sort();
+                }
+                const defaultDates = getDefaultPeriodDates(year, month);
+                const excluded = data?.excludedDates || [];
+                const extra = data?.extraDates || [];
+                const blocks = data?.dateBlocks || [];
+                const dates = new Set(defaultDates.filter((d) => !excluded.includes(d)));
+                extra.forEach((d) => dates.add(d));
+                blocks.forEach((block) => {
+                    if (!block?.start || !block?.end) return;
                     let d = parseISODate(block.start);
                     const endD = parseISODate(block.end);
-                    if (d > endD) return;
                     while (d <= endD) {
                         dates.add(formatISODate(d));
                         d.setDate(d.getDate() + 1);
                     }
                 });
-                return dates;
+                return [...dates].sort();
             };
-            const expandRangeToCalendarBounds = (startDate, endDate) => {
-                const blockDates = expandDateBlocksToDates();
-                blockDates.forEach((dStr) => {
-                    const d = parseISODate(dStr);
-                    if (d < startDate) startDate = new Date(d);
-                    if (d > endDate) endDate = new Date(d);
-                });
-                extraDates.forEach((dStr) => {
+            const getViagemGridBounds = (year, month, dates) => {
+                let startDate = new Date(year, month, 16);
+                let endDate = new Date(year, month + 1, 15);
+                dates.forEach((dStr) => {
                     const d = parseISODate(dStr);
                     if (d < startDate) startDate = new Date(d);
                     if (d > endDate) endDate = new Date(d);
                 });
                 return { startDate, endDate };
             };
+            const addDatesToViagem = (...dateStrings) => {
+                let changed = false;
+                dateStrings.forEach((d) => {
+                    if (!d || viagemDates.includes(d)) return;
+                    viagemDates.push(d);
+                    changed = true;
+                });
+                if (changed) viagemDates.sort();
+                return changed;
+            };
+            const addViagemDateRange = (start, end) => {
+                let d = parseISODate(start);
+                const endD = parseISODate(end);
+                const toAdd = [];
+                while (d <= endD) {
+                    toAdd.push(formatISODate(d));
+                    d.setDate(d.getDate() + 1);
+                }
+                return addDatesToViagem(...toAdd);
+            };
+            const VIAGEM_PLUS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
 
             const prefilledNelsonData = {
                 "2025-10-16": ["PENNA", "THEODORO"], "2025-10-17": ["LISBOA", "MALCHER"], "2025-10-18": ["LISBOA", "EDUARDO"],
@@ -1112,10 +1216,10 @@
                         if (colInWeek >= WEEKEND_START_COL) printDayCell.classList.add('print-day-cell-weekend');
 
                         const dateLabel = dayCell.querySelector('.date-label');
-                        const dateInput = dayCell.querySelector('.date-header-input');
+                        const dateTextSpan = dateLabel?.querySelector('.viagem-date-text, .date-label-text');
+                        const dateText = dateTextSpan?.textContent.trim() || '';
 
-                        if (dateInput?.value) {
-                            const dateText = formatDateForDisplay(dateInput.value);
+                        if (dateText) {
                             const teamSelect = dayCell.querySelector('.team-select-input');
                             let teamLabel = '';
                             if (teamSelect?.value) {
@@ -1131,7 +1235,7 @@
                                     agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
                                 }
                             });
-                            const labelTone = `print-date-label${printToneSuffix(dateLabel || dateInput?.closest('.date-label'))}`;
+                            const labelTone = `print-date-label${printToneSuffix(dateLabel)}`;
                             printDayCell.innerHTML = `
                                     <div class="print-date-label ${labelTone}"><span style="display:block">${dateText}</span>${teamLabel}</div>
                                     <div class="agent-names-container">
@@ -1200,19 +1304,19 @@
                 editableTitlePart.classList.add('hover:bg-slate-200', 'focus:ring-2', 'focus:ring-indigo-400');
                 document.querySelectorAll('.agent-name-input').forEach(el => el.disabled = false);
                 document.querySelectorAll('.team-select-input').forEach(el => el.disabled = false);
-                document.querySelectorAll('.date-header-input').forEach(el => el.disabled = false);
                 saveButton.disabled = false;
                 loginButton.classList.add('hidden');
                 logoutButton.classList.remove('hidden');
                 
                 document.getElementById('turso-upload-container').classList.remove('hidden');
                 
-                const isViagem = document.getElementById('schedule-type-select').value === 'extraordinaria_viagem';
-                addDayButton.disabled = !isViagem;
+                const isViagem = scheduleTypeSelect.value === 'extraordinaria_viagem';
+                calendarTable?.classList.toggle('calendar-readonly', !isViagem);
                 addBlockButton.disabled = !isViagem;
+                clearViagemButton.disabled = !isViagem;
                 blockStartInput.disabled = !isViagem;
                 blockEndInput.disabled = !isViagem;
-                [addDayButton, addBlockButton].forEach((btn) => {
+                [addBlockButton, clearViagemButton].forEach((btn) => {
                     btn.classList.toggle('opacity-50', !isViagem);
                     btn.classList.toggle('cursor-not-allowed', !isViagem);
                 });
@@ -1223,18 +1327,18 @@
                 editableTitlePart.classList.remove('hover:bg-slate-200', 'focus:ring-2', 'focus:ring-indigo-400');
                 document.querySelectorAll('.agent-name-input').forEach(el => el.disabled = true);
                 document.querySelectorAll('.team-select-input').forEach(el => el.disabled = true);
-                document.querySelectorAll('.date-header-input').forEach(el => el.disabled = true);
                 saveButton.disabled = true;
                 loginButton.classList.remove('hidden');
                 logoutButton.classList.add('hidden');
                 
                 document.getElementById('turso-upload-container').classList.add('hidden');
+                calendarTable?.classList.add('calendar-readonly');
                 
-                addDayButton.disabled = true;
                 addBlockButton.disabled = true;
+                clearViagemButton.disabled = true;
                 blockStartInput.disabled = true;
                 blockEndInput.disabled = true;
-                [addDayButton, addBlockButton].forEach((btn) => {
+                [addBlockButton, clearViagemButton].forEach((btn) => {
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
                 });
             };
@@ -1259,31 +1363,8 @@
             loginButton.addEventListener('click', () => loginModal.classList.remove('hidden'));
             logoutButton.addEventListener('click', logout);
             
-            // Lógica do botão de Adicionar Dia - MOVIDO para usar date picker
-            addDayButton.addEventListener('click', () => {
-                // Abre o seletor de data oculto
-                if (extraDateInput.showPicker) {
-                    extraDateInput.showPicker();
-                } else {
-                    extraDateInput.click();
-                }
-            });
-
-            // Lógica ao selecionar data no input oculto
-            extraDateInput.addEventListener('change', async (e) => {
-                const selectedDate = e.target.value;
-                if (!selectedDate) return;
-                
-                if (!extraDates.includes(selectedDate)) {
-                    extraDates.push(selectedDate);
-                    await saveScheduleData({ silent: true });
-                    generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
-                }
-                
-                e.target.value = '';
-            });
-
             addBlockButton.addEventListener('click', async () => {
+                if (scheduleTypeSelect.value !== 'extraordinaria_viagem') return;
                 const start = blockStartInput.value;
                 const end = blockEndInput.value;
                 if (!start || !end) {
@@ -1294,48 +1375,51 @@
                     alert('A data inicial deve ser anterior ou igual à data final.');
                     return;
                 }
-                dateBlocks.push({ start, end });
+                addViagemDateRange(start, end);
                 await saveScheduleData({ silent: true });
                 generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
                 blockStartInput.value = '';
                 blockEndInput.value = '';
             });
 
-            const handleDateHeaderChange = async (input) => {
-                const oldDate = input.dataset.date;
-                const newDate = input.value;
-                if (!newDate || oldDate === newDate) {
-                    input.value = oldDate;
+            clearViagemButton.addEventListener('click', async () => {
+                if (scheduleTypeSelect.value !== 'extraordinaria_viagem') return;
+                if (!confirm('Limpar todas as datas e agentes desta escala de viagem?')) return;
+                viagemDates = [];
+                await saveScheduleData({ silent: true, schedule: {}, teams: {} });
+                generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
+            });
+
+            calendarBody.addEventListener('click', async (e) => {
+                if (scheduleTypeSelect.value !== 'extraordinaria_viagem') return;
+                const addBtn = e.target.closest('.viagem-slot-action--add');
+                const removeBtn = e.target.closest('.viagem-slot-action--remove');
+                if (!addBtn && !removeBtn) return;
+                if (!canPersistSchedule()) {
+                    alert('Faça login para editar a escala de viagem.');
                     return;
                 }
 
-                const year = parseInt(yearSelect.value, 10);
-                const month = parseInt(monthSelect.value, 10);
-                const { schedule, teams } = collectScheduleFromDOM(calendarBody);
+                const cell = e.target.closest('.viagem-day-cell');
+                const slotDate = cell?.dataset.slotDate;
+                if (!slotDate) return;
 
-                if (schedule[oldDate]) {
-                    schedule[newDate] = schedule[oldDate];
-                    delete schedule[oldDate];
-                }
-                if (teams[oldDate]) {
-                    teams[newDate] = teams[oldDate];
-                    delete teams[oldDate];
+                if (addBtn) {
+                    if (!addDatesToViagem(slotDate)) return;
+                    await saveScheduleData({ silent: true });
+                    generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
+                    return;
                 }
 
-                if (isDateInDefaultPeriod(oldDate, year, month)) {
-                    if (!excludedDates.includes(oldDate)) excludedDates.push(oldDate);
-                } else {
-                    extraDates = extraDates.filter((d) => d !== oldDate);
+                if (removeBtn) {
+                    const { schedule, teams } = collectScheduleFromDOM(calendarBody);
+                    delete schedule[slotDate];
+                    delete teams[slotDate];
+                    viagemDates = viagemDates.filter((d) => d !== slotDate);
+                    await saveScheduleData({ silent: true, schedule, teams });
+                    generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
                 }
-
-                if (!isDateInDefaultPeriod(newDate, year, month) && !extraDates.includes(newDate)) {
-                    extraDates.push(newDate);
-                }
-                excludedDates = excludedDates.filter((d) => d !== newDate);
-
-                await saveScheduleData({ silent: true, schedule, teams });
-                generateCalendar(year, month, scheduleTypeSelect.value);
-            };
+            });
 
             loginModal.addEventListener('click', (e) => {
                 if (e.target === loginModal) {
@@ -1483,11 +1567,11 @@
                         title: editableTitlePart.textContent,
                         schedule: scheduleData,
                         teams: teamsData,
-                        extraDates: extraDates,
-                        dateBlocks: dateBlocks,
-                        excludedDates: excludedDates,
                         createdAt: new Date()
                     };
+                    if (scheduleType === 'extraordinaria_viagem') {
+                        dataToSave.viagemDates = viagemDates;
+                    }
 
                     try {
                         const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
@@ -1543,10 +1627,6 @@
 
             calendarBody.addEventListener('change', (e) => {
                 const t = e.target;
-                if (t.classList.contains('date-header-input')) {
-                    handleDateHeaderChange(t);
-                    return;
-                }
                 if (!t.classList.contains('agent-name-input') && !t.classList.contains('team-select-input')) return;
                 if (t.classList.contains('agent-name-input')) {
                     updateSummary();
@@ -1601,27 +1681,19 @@
                     // NOVO: Dados das equipes
                     const teamsData = data?.teams || {};
 
-                    // NOVO: Carregar array de datas extras
-                    const savedExtraDates = data?.extraDates || [];
-                    const savedDateBlocks = data?.dateBlocks || [];
-                    const savedExcludedDates = data?.excludedDates || [];
+                    // Datas personalizadas — somente escala Viagem
+                    if (scheduleType === 'extraordinaria_viagem') {
+                        const savedViagemDates = resolveViagemDatesFromSaved(data, year, month);
+                        const currentSorted = [...viagemDates].sort();
+                        const needsRegenerate = JSON.stringify(savedViagemDates) !== JSON.stringify(currentSorted);
 
-                    const needsRegenerate =
-                        savedExtraDates.some((d) => !extraDates.includes(d)) ||
-                        savedDateBlocks.some((b) => !dateBlocks.some((x) => x.start === b.start && x.end === b.end)) ||
-                        savedExcludedDates.some((d) => !excludedDates.includes(d));
-
-                    if (needsRegenerate) {
-                        extraDates = [...savedExtraDates];
-                        dateBlocks = [...savedDateBlocks];
-                        excludedDates = [...savedExcludedDates];
-                        generateCalendar(year, month, scheduleType);
-                        return;
+                        if (needsRegenerate) {
+                            viagemDates = savedViagemDates;
+                            generateCalendar(year, month, scheduleType);
+                            return;
+                        }
+                        viagemDates = savedViagemDates;
                     }
-
-                    extraDates = [...savedExtraDates];
-                    dateBlocks = [...savedDateBlocks];
-                    excludedDates = [...savedExcludedDates];
 
                     if (!data && scheduleType === 'ordinaria_nelson' && year === NELSON_PREFILL_PERIOD.year && month === NELSON_PREFILL_PERIOD.month) {
                         scheduleData = prefilledNelsonData;
@@ -1747,16 +1819,136 @@
                 }
             });
 
+            const buildViagemWeeks = (year, month) => {
+                const { startDate, endDate } = getViagemGridBounds(year, month, viagemDates);
+                let currentDate = new Date(startDate);
+                while (currentDate.getDay() !== 1) currentDate.setDate(currentDate.getDate() - 1);
+
+                const weeks = [];
+                const loopEndDate = new Date(endDate);
+                while (weeks.length === 0 || loopEndDate >= currentDate) {
+                    const week = Array(7).fill(null);
+                    for (let i = 0; i < 7; i++) {
+                        if (currentDate >= startDate && currentDate <= endDate) {
+                            week[i] = new Date(currentDate);
+                        }
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                    if (week.some((d) => d !== null)) weeks.push(week);
+                }
+                return { weeks, startDate, endDate };
+            };
+
+            const renderViagemFilledCell = (cell, day, startDate) => {
+                const dateString = formatISODate(day);
+                const isFirstMonth = day.getMonth() === startDate.getMonth();
+                const dateColorClass = isFirstMonth ? 'bg-indigo-500 text-white' : 'bg-blue-500 text-white';
+                cell.className += ' viagem-day-cell viagem-day-cell--filled';
+                cell.dataset.slotDate = dateString;
+                cell.innerHTML = `
+                    <div class="mb-1">
+                        <div class="date-label flex w-full ${dateColorClass} py-0.5 sm:py-1 rounded-md shadow-sm items-center justify-center px-1 sm:px-2">
+                            <span class="viagem-date-text">${formatViagemDateDisplay(dateString)}</span>
+                            <button type="button" class="viagem-slot-action viagem-slot-action--remove" aria-label="Remover data" title="Remover data">&times;</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-start items-center space-y-1 px-2"></div>`;
+                const container = cell.querySelector('.flex-col');
+                for (let i = 0; i < 2; i++) {
+                    const select = document.createElement('select');
+                    select.className = 'agent-name-input';
+                    select.dataset.date = dateString;
+                    select.dataset.index = i;
+                    select.innerHTML = `<option value=""></option>${ALLOWED_NAMES.map(n => `<option value="${n}">${n}</option>`).join('')}`;
+                    container.appendChild(select);
+                }
+            };
+
+            const renderViagemEmptyCell = (cell, day) => {
+                const dateString = formatISODate(day);
+                cell.className += ' viagem-day-cell viagem-day-cell--empty';
+                cell.dataset.slotDate = dateString;
+                cell.innerHTML = `
+                    <div class="viagem-empty-slot">
+                        <button type="button" class="viagem-slot-action viagem-slot-action--add" aria-label="Adicionar data" title="Adicionar data">${VIAGEM_PLUS_SVG}</button>
+                    </div>`;
+            };
+
+            const appendMonthCellIfNeeded = (row, firstDayOfWeek, startDate, renderedMonths, monthWeeksCount) => {
+                if (!firstDayOfWeek || renderedMonths.includes(firstDayOfWeek.getMonth())) return;
+                const monthKey = firstDayOfWeek.getMonth();
+                const monthName = new Date(firstDayOfWeek.getFullYear(), monthKey).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+                const colorClass = monthKey === startDate.getMonth() ? 'bg-indigo-500' : 'bg-blue-500';
+                const monthCell = document.createElement('td');
+                monthCell.className = `font-bold text-xs sm:text-sm text-white p-1 sm:p-2 ${colorClass}`;
+                monthCell.style.width = '50px';
+                monthCell.style.writingMode = 'vertical-rl';
+                monthCell.style.textOrientation = 'mixed';
+                monthCell.style.transform = 'rotate(180deg)';
+                monthCell.textContent = monthName;
+                monthCell.rowSpan = monthWeeksCount[monthKey];
+                row.appendChild(monthCell);
+                renderedMonths.push(monthKey);
+            };
+
+            const generateViagemCalendar = (year, month) => {
+                calendarBody.innerHTML = '';
+                const { weeks, startDate } = buildViagemWeeks(year, month);
+
+                const monthWeeksCount = {};
+                weeks.forEach((week) => {
+                    const firstDay = week.find((d) => d);
+                    if (firstDay) {
+                        const mKey = firstDay.getMonth();
+                        monthWeeksCount[mKey] = (monthWeeksCount[mKey] || 0) + 1;
+                    }
+                });
+
+                const renderedMonths = [];
+                weeks.forEach((week) => {
+                    const row = document.createElement('tr');
+                    appendMonthCellIfNeeded(row, week.find((d) => d), startDate, renderedMonths, monthWeeksCount);
+
+                    week.forEach((day, dayIndex) => {
+                        const cell = document.createElement('td');
+                        cell.className = `border-2 border-slate-300 calendar-day-cell align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
+                        if (day) {
+                            const dateString = formatISODate(day);
+                            if (viagemDates.includes(dateString)) {
+                                renderViagemFilledCell(cell, day, startDate);
+                            } else {
+                                renderViagemEmptyCell(cell, day);
+                            }
+                        } else {
+                            cell.innerHTML = '&nbsp;';
+                        }
+                        row.appendChild(cell);
+                    });
+                    calendarBody.appendChild(row);
+                });
+            };
+
             const generateCalendar = (year, month, scheduleType) => {
+                if (scheduleType === 'extraordinaria_viagem') {
+                    generateViagemCalendar(year, month);
+                    if (auth && auth.currentUser) {
+                        loadScheduleData(year, month, scheduleType);
+                    } else {
+                        updateSummary();
+                    }
+                    if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
+                        enableEditing();
+                    } else {
+                        disableEditing();
+                    }
+                    return;
+                }
+
                 calendarBody.innerHTML = '';
                 
                 // Definir intervalo padrão (16 a 15)
                 let startDate = new Date(year, month, 16);
                 let endDate = new Date(year, month + 1, 15);
-                
-                // --- LÓGICA DE DATAS EXTRAS E BLOCOS ---
-                ({ startDate, endDate } = expandRangeToCalendarBounds(startDate, endDate));
-                // -----------------------------
                 
                 let currentDate = new Date(startDate);
                 // Ajustar para a segunda-feira anterior para começar a semana corretamente
@@ -1773,10 +1965,7 @@
                         // OU se for uma das datas extras específicas (caso quiséssemos buracos, mas aqui estamos expandindo o range)
                         // Como expandimos startDate/endDate para cobrir tudo, a verificação de range padrão funciona.
                         if (currentDate >= startDate && currentDate <= endDate) {
-                            const dateStr = formatISODate(currentDate);
-                            if (!excludedDates.includes(dateStr)) {
-                                week[i] = new Date(currentDate);
-                            }
+                            week[i] = new Date(currentDate);
                         }
                         currentDate.setDate(currentDate.getDate() + 1);
                     }
@@ -1824,6 +2013,7 @@
                         cell.className = `border-2 border-slate-300 calendar-day-cell align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
                         if (day) {
                             const dateString = formatISODate(day);
+                            const monthShort = day.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
                             
                             const isFirstMonth = day.getMonth() === startDate.getMonth();
                             const dateColorClass = isFirstMonth ? 'bg-indigo-500 text-white' : 'bg-blue-500 text-white';
@@ -1846,10 +2036,12 @@
                                 ? `date-label date-label--with-team w-full ${dateColorClass} py-1 rounded-md shadow-sm px-1.5 sm:px-2`
                                 : `date-label flex w-full ${dateColorClass} py-0.5 sm:py-1 rounded-md shadow-sm items-center justify-center px-1 sm:px-2`;
 
+                            const dateHeaderHtml = `<span class="date-label-text text-sm sm:text-base font-black tabular-nums text-center leading-tight ${scheduleType === 'ordinaria_nelson' ? 'block w-full' : ''}">${day.getDate()}/${monthShort}</span>`;
+
                             cell.innerHTML = `
                                 <div class="mb-1">
                                     <div class="${dateLabelRowClass}">
-                                        <input type="date" class="date-header-input" value="${dateString}" data-date="${dateString}" title="Editar data" disabled>
+                                        ${dateHeaderHtml}
                                         ${teamSelectHtml}
                                     </div>
                                 </div>
@@ -1914,9 +2106,7 @@
                 const scheduleType = scheduleTypeSelect.value;
                 const subtitleFromSelect = getSubtitleFromScheduleSelect();
 
-                extraDates = [];
-                dateBlocks = [];
-                excludedDates = [];
+                viagemDates = [];
 
                 const ui = SCHEDULE_HEADER_UI[scheduleType] || SCHEDULE_HEADER_FALLBACK;
                 editableTitlePart.textContent = ui.mainTitle;
