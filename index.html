@@ -141,6 +141,38 @@
             padding: 2px 4px;
             box-sizing: border-box;
         }
+        .date-header-input {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-weight: 900;
+            font-size: 0.875rem;
+            text-align: center;
+            width: 100%;
+            min-width: 0;
+            padding: 0;
+            cursor: pointer;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.25;
+        }
+        @media (min-width: 640px) {
+            .date-header-input { font-size: 1rem; }
+        }
+        .date-header-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.85;
+            cursor: pointer;
+        }
+        .date-header-input:disabled {
+            opacity: 1;
+            cursor: default;
+            pointer-events: none;
+        }
+        .date-header-input:disabled::-webkit-calendar-picker-indicator {
+            display: none;
+        }
         .team-select-input option {
             color: #333; /* Texto escuro para as opções no dropdown */
             background-color: white;
@@ -491,11 +523,22 @@
                  <!-- Input de data oculto para seleção de dia -->
                  <input type="date" id="extra-date-input" class="hidden">
                  
-                 <!-- Botão para adicionar dia (visível apenas na Viagem) -->
-                 <button id="add-day-button" class="hidden min-h-11 lg:min-h-9 px-3 py-2 lg:py-1.5 bg-emerald-600 text-white text-sm lg:text-xs font-semibold rounded-lg shadow-sm hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors flex items-center justify-center gap-1 touch-manipulation w-full sm:w-auto lg:ml-auto">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    Dia
-                 </button>
+                 <!-- Controles de datas personalizadas (visível na Viagem) -->
+                 <div id="custom-date-controls" class="hidden flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full lg:justify-end">
+                    <button id="add-day-button" type="button" class="min-h-11 lg:min-h-9 px-3 py-2 lg:py-1.5 bg-emerald-600 text-white text-sm lg:text-xs font-semibold rounded-lg shadow-sm hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors flex items-center justify-center gap-1 touch-manipulation w-full sm:w-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Dia
+                    </button>
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <input type="date" id="block-start-input" title="Início do bloco" class="flex-1 sm:flex-initial min-h-11 lg:min-h-9 py-2 lg:py-1.5 px-2 border border-slate-300 rounded-lg shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 touch-manipulation">
+                        <span class="text-slate-500 text-xs font-medium self-center shrink-0">até</span>
+                        <input type="date" id="block-end-input" title="Fim do bloco" class="flex-1 sm:flex-initial min-h-11 lg:min-h-9 py-2 lg:py-1.5 px-2 border border-slate-300 rounded-lg shadow-sm bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 touch-manipulation">
+                        <button id="add-block-button" type="button" class="min-h-11 lg:min-h-9 px-3 py-2 lg:py-1.5 bg-teal-600 text-white text-sm lg:text-xs font-semibold rounded-lg shadow-sm hover:bg-teal-700 active:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors flex items-center justify-center gap-1 touch-manipulation w-full sm:w-auto">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            Bloco
+                        </button>
+                    </div>
+                 </div>
 
                  <div class="flex flex-col gap-1 w-full lg:w-full min-w-0">
                     <div class="flex flex-wrap items-center gap-2 w-full justify-stretch sm:justify-end">
@@ -880,6 +923,10 @@
             const pastScalesListFds = document.getElementById('past-scales-list-fds');
             const pastScalesListViagem = document.getElementById('past-scales-list-viagem');
             const addDayButton = document.getElementById('add-day-button');
+            const addBlockButton = document.getElementById('add-block-button');
+            const customDateControls = document.getElementById('custom-date-controls');
+            const blockStartInput = document.getElementById('block-start-input');
+            const blockEndInput = document.getElementById('block-end-input');
             const extraDateInput = document.getElementById('extra-date-input'); // NOVO: Input de data
             
             // Elementos da view de impressão
@@ -918,8 +965,10 @@
             // Inicializa Turso
             initTurso();
 
-            // Variável para armazenar datas extras (Array de strings YYYY-MM-DD)
+            // Variáveis para datas personalizadas
             let extraDates = [];
+            let dateBlocks = [];
+            let excludedDates = [];
             let autoSaveDebounceTimer = null;
             const AUTOSAVE_DEBOUNCE_MS = 600;
             let periodSnapshotBeforeSelect = null;
@@ -952,6 +1001,52 @@
             
             const PT_BR_MONTHS = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
             const ALLOWED_NAMES = ['ESCALA', 'GARCEZ', 'GABRIEL', 'ROBERTO','JOÃO PEDRO', 'VIEIRA', 'LISBOA', 'MALCHER', 'PENNA', 'THEODORO', 'EDUARDO'];
+
+            const parseISODate = (str) => {
+                const [y, m, d] = str.split('-').map(Number);
+                return new Date(y, m - 1, d);
+            };
+            const formatISODate = (date) =>
+                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            const formatDateForDisplay = (isoStr) => {
+                const d = parseISODate(isoStr);
+                const monthShort = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
+                return `${d.getDate()}/${monthShort}`;
+            };
+            const isDateInDefaultPeriod = (dateStr, year, month) => {
+                const d = parseISODate(dateStr);
+                const start = new Date(year, month, 16);
+                const end = new Date(year, month + 1, 15);
+                return d >= start && d <= end;
+            };
+            const expandDateBlocksToDates = () => {
+                const dates = new Set();
+                dateBlocks.forEach((block) => {
+                    if (!block.start || !block.end) return;
+                    let d = parseISODate(block.start);
+                    const endD = parseISODate(block.end);
+                    if (d > endD) return;
+                    while (d <= endD) {
+                        dates.add(formatISODate(d));
+                        d.setDate(d.getDate() + 1);
+                    }
+                });
+                return dates;
+            };
+            const expandRangeToCalendarBounds = (startDate, endDate) => {
+                const blockDates = expandDateBlocksToDates();
+                blockDates.forEach((dStr) => {
+                    const d = parseISODate(dStr);
+                    if (d < startDate) startDate = new Date(d);
+                    if (d > endDate) endDate = new Date(d);
+                });
+                extraDates.forEach((dStr) => {
+                    const d = parseISODate(dStr);
+                    if (d < startDate) startDate = new Date(d);
+                    if (d > endDate) endDate = new Date(d);
+                });
+                return { startDate, endDate };
+            };
 
             const prefilledNelsonData = {
                 "2025-10-16": ["PENNA", "THEODORO"], "2025-10-17": ["LISBOA", "MALCHER"], "2025-10-18": ["LISBOA", "EDUARDO"],
@@ -1017,10 +1112,10 @@
                         if (colInWeek >= WEEKEND_START_COL) printDayCell.classList.add('print-day-cell-weekend');
 
                         const dateLabel = dayCell.querySelector('.date-label');
+                        const dateInput = dayCell.querySelector('.date-header-input');
 
-                        if (dateLabel && dateLabel.textContent.trim() !== '') {
-                            const dateTextSpan = dateLabel.querySelector('span') || dateLabel;
-                            const dateText = dateTextSpan.textContent.trim();
+                        if (dateInput?.value) {
+                            const dateText = formatDateForDisplay(dateInput.value);
                             const teamSelect = dayCell.querySelector('.team-select-input');
                             let teamLabel = '';
                             if (teamSelect?.value) {
@@ -1036,7 +1131,7 @@
                                     agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
                                 }
                             });
-                            const labelTone = `print-date-label${printToneSuffix(dateLabel)}`;
+                            const labelTone = `print-date-label${printToneSuffix(dateLabel || dateInput?.closest('.date-label'))}`;
                             printDayCell.innerHTML = `
                                     <div class="print-date-label ${labelTone}"><span style="display:block">${dateText}</span>${teamLabel}</div>
                                     <div class="agent-names-container">
@@ -1104,38 +1199,44 @@
                 editableTitlePart.contentEditable = "true";
                 editableTitlePart.classList.add('hover:bg-slate-200', 'focus:ring-2', 'focus:ring-indigo-400');
                 document.querySelectorAll('.agent-name-input').forEach(el => el.disabled = false);
-                // NOVO: Habilita seletores de equipe
                 document.querySelectorAll('.team-select-input').forEach(el => el.disabled = false);
+                document.querySelectorAll('.date-header-input').forEach(el => el.disabled = false);
                 saveButton.disabled = false;
                 loginButton.classList.add('hidden');
                 logoutButton.classList.remove('hidden');
                 
-                // Habilita controles Turso
                 document.getElementById('turso-upload-container').classList.remove('hidden');
                 
-                // Habilita botão de adicionar dia se estiver na viagem
-                if (document.getElementById('schedule-type-select').value === 'extraordinaria_viagem') {
-                    addDayButton.disabled = false;
-                    addDayButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
+                const isViagem = document.getElementById('schedule-type-select').value === 'extraordinaria_viagem';
+                addDayButton.disabled = !isViagem;
+                addBlockButton.disabled = !isViagem;
+                blockStartInput.disabled = !isViagem;
+                blockEndInput.disabled = !isViagem;
+                [addDayButton, addBlockButton].forEach((btn) => {
+                    btn.classList.toggle('opacity-50', !isViagem);
+                    btn.classList.toggle('cursor-not-allowed', !isViagem);
+                });
             };
 
             const disableEditing = () => {
                 editableTitlePart.contentEditable = "false";
                 editableTitlePart.classList.remove('hover:bg-slate-200', 'focus:ring-2', 'focus:ring-indigo-400');
                 document.querySelectorAll('.agent-name-input').forEach(el => el.disabled = true);
-                // NOVO: Desabilita seletores de equipe
                 document.querySelectorAll('.team-select-input').forEach(el => el.disabled = true);
+                document.querySelectorAll('.date-header-input').forEach(el => el.disabled = true);
                 saveButton.disabled = true;
                 loginButton.classList.remove('hidden');
                 logoutButton.classList.add('hidden');
                 
-                // Desabilita controles Turso (apenas leitura)
                 document.getElementById('turso-upload-container').classList.add('hidden');
                 
-                // Desabilita botão adicionar dia
                 addDayButton.disabled = true;
-                addDayButton.classList.add('opacity-50', 'cursor-not-allowed');
+                addBlockButton.disabled = true;
+                blockStartInput.disabled = true;
+                blockEndInput.disabled = true;
+                [addDayButton, addBlockButton].forEach((btn) => {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                });
             };
             
             const resetSessionTimer = () => {
@@ -1173,20 +1274,68 @@
                 const selectedDate = e.target.value;
                 if (!selectedDate) return;
                 
-                // Adiciona data se não existir
                 if (!extraDates.includes(selectedDate)) {
                     extraDates.push(selectedDate);
-                    
-                    // IMPORTANTE: Salvar dados atuais antes de regenerar para não perder edições
                     await saveScheduleData({ silent: true });
-                    
-                    // Regenera o calendário
-                    generateCalendar(parseInt(yearSelect.value), parseInt(monthSelect.value), scheduleTypeSelect.value);
+                    generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
                 }
                 
-                // Limpa o input para permitir selecionar a mesma data se for removida (futuro) ou outra
                 e.target.value = '';
             });
+
+            addBlockButton.addEventListener('click', async () => {
+                const start = blockStartInput.value;
+                const end = blockEndInput.value;
+                if (!start || !end) {
+                    alert('Selecione a data inicial e final do bloco.');
+                    return;
+                }
+                if (start > end) {
+                    alert('A data inicial deve ser anterior ou igual à data final.');
+                    return;
+                }
+                dateBlocks.push({ start, end });
+                await saveScheduleData({ silent: true });
+                generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
+                blockStartInput.value = '';
+                blockEndInput.value = '';
+            });
+
+            const handleDateHeaderChange = async (input) => {
+                const oldDate = input.dataset.date;
+                const newDate = input.value;
+                if (!newDate || oldDate === newDate) {
+                    input.value = oldDate;
+                    return;
+                }
+
+                const year = parseInt(yearSelect.value, 10);
+                const month = parseInt(monthSelect.value, 10);
+                const { schedule, teams } = collectScheduleFromDOM(calendarBody);
+
+                if (schedule[oldDate]) {
+                    schedule[newDate] = schedule[oldDate];
+                    delete schedule[oldDate];
+                }
+                if (teams[oldDate]) {
+                    teams[newDate] = teams[oldDate];
+                    delete teams[oldDate];
+                }
+
+                if (isDateInDefaultPeriod(oldDate, year, month)) {
+                    if (!excludedDates.includes(oldDate)) excludedDates.push(oldDate);
+                } else {
+                    extraDates = extraDates.filter((d) => d !== oldDate);
+                }
+
+                if (!isDateInDefaultPeriod(newDate, year, month) && !extraDates.includes(newDate)) {
+                    extraDates.push(newDate);
+                }
+                excludedDates = excludedDates.filter((d) => d !== newDate);
+
+                await saveScheduleData({ silent: true, schedule, teams });
+                generateCalendar(year, month, scheduleTypeSelect.value);
+            };
 
             loginModal.addEventListener('click', (e) => {
                 if (e.target === loginModal) {
@@ -1326,13 +1475,17 @@
                         saveButton.textContent = 'Salvando...';
                     }
 
-                    const { schedule: scheduleData, teams: teamsData } = collectScheduleFromDOM(calendarBody);
+                    const { schedule: scheduleData, teams: teamsData } = opts.schedule
+                        ? { schedule: opts.schedule, teams: opts.teams || {} }
+                        : collectScheduleFromDOM(calendarBody);
 
                     const dataToSave = {
                         title: editableTitlePart.textContent,
                         schedule: scheduleData,
                         teams: teamsData,
                         extraDates: extraDates,
+                        dateBlocks: dateBlocks,
+                        excludedDates: excludedDates,
                         createdAt: new Date()
                     };
 
@@ -1390,6 +1543,10 @@
 
             calendarBody.addEventListener('change', (e) => {
                 const t = e.target;
+                if (t.classList.contains('date-header-input')) {
+                    handleDateHeaderChange(t);
+                    return;
+                }
                 if (!t.classList.contains('agent-name-input') && !t.classList.contains('team-select-input')) return;
                 if (t.classList.contains('agent-name-input')) {
                     updateSummary();
@@ -1446,25 +1603,25 @@
 
                     // NOVO: Carregar array de datas extras
                     const savedExtraDates = data?.extraDates || [];
-                    
-                    // Verifica se há novas datas carregadas que não estão no estado local
-                    let hasNewDates = false;
-                    savedExtraDates.forEach(d => {
-                        if (!extraDates.includes(d)) {
-                            extraDates.push(d);
-                            hasNewDates = true;
-                        }
-                    });
-                    
-                    // Se houver datas novas carregadas do banco, precisamos regenerar o calendário
-                    // para garantir que os campos existam para serem preenchidos.
-                    // ATENÇÃO: Se acabamos de salvar e regenerar (fluxo do Add Day), hasNewDates será false,
-                    // evitando loop infinito.
-                    if (hasNewDates) {
-                        // Rechama o generateCalendar com as datas atualizadas.
+                    const savedDateBlocks = data?.dateBlocks || [];
+                    const savedExcludedDates = data?.excludedDates || [];
+
+                    const needsRegenerate =
+                        savedExtraDates.some((d) => !extraDates.includes(d)) ||
+                        savedDateBlocks.some((b) => !dateBlocks.some((x) => x.start === b.start && x.end === b.end)) ||
+                        savedExcludedDates.some((d) => !excludedDates.includes(d));
+
+                    if (needsRegenerate) {
+                        extraDates = [...savedExtraDates];
+                        dateBlocks = [...savedDateBlocks];
+                        excludedDates = [...savedExcludedDates];
                         generateCalendar(year, month, scheduleType);
-                        return; // Interrompe esta execução
+                        return;
                     }
+
+                    extraDates = [...savedExtraDates];
+                    dateBlocks = [...savedDateBlocks];
+                    excludedDates = [...savedExcludedDates];
 
                     if (!data && scheduleType === 'ordinaria_nelson' && year === NELSON_PREFILL_PERIOD.year && month === NELSON_PREFILL_PERIOD.month) {
                         scheduleData = prefilledNelsonData;
@@ -1597,20 +1754,8 @@
                 let startDate = new Date(year, month, 16);
                 let endDate = new Date(year, month + 1, 15);
                 
-                // --- LÓGICA DE DATAS EXTRAS ---
-                if (extraDates.length > 0) {
-                    // Converter strings YYYY-MM-DD para Date
-                    const extraDateObjects = extraDates.map(d => {
-                        const [y, m, day] = d.split('-').map(Number);
-                        return new Date(y, m - 1, day);
-                    });
-                    
-                    // Encontrar a menor e maior data entre o intervalo padrão e as extras
-                    extraDateObjects.forEach(d => {
-                        if (d < startDate) startDate = d;
-                        if (d > endDate) endDate = d;
-                    });
-                }
+                // --- LÓGICA DE DATAS EXTRAS E BLOCOS ---
+                ({ startDate, endDate } = expandRangeToCalendarBounds(startDate, endDate));
                 // -----------------------------
                 
                 let currentDate = new Date(startDate);
@@ -1628,7 +1773,10 @@
                         // OU se for uma das datas extras específicas (caso quiséssemos buracos, mas aqui estamos expandindo o range)
                         // Como expandimos startDate/endDate para cobrir tudo, a verificação de range padrão funciona.
                         if (currentDate >= startDate && currentDate <= endDate) {
-                            week[i] = new Date(currentDate);
+                            const dateStr = formatISODate(currentDate);
+                            if (!excludedDates.includes(dateStr)) {
+                                week[i] = new Date(currentDate);
+                            }
                         }
                         currentDate.setDate(currentDate.getDate() + 1);
                     }
@@ -1675,8 +1823,7 @@
                         const cell = document.createElement('td');
                         cell.className = `border-2 border-slate-300 calendar-day-cell align-top ${dayIndex >= 5 ? 'bg-slate-50' : ''}`;
                         if (day) {
-                            const monthShort = day.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
-                            const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                            const dateString = formatISODate(day);
                             
                             const isFirstMonth = day.getMonth() === startDate.getMonth();
                             const dateColorClass = isFirstMonth ? 'bg-indigo-500 text-white' : 'bg-blue-500 text-white';
@@ -1702,7 +1849,7 @@
                             cell.innerHTML = `
                                 <div class="mb-1">
                                     <div class="${dateLabelRowClass}">
-                                        <span class="text-sm sm:text-base font-black tabular-nums text-center leading-tight ${scheduleType === 'ordinaria_nelson' ? 'block w-full' : ''}">${day.getDate()}/${monthShort}</span>
+                                        <input type="date" class="date-header-input" value="${dateString}" data-date="${dateString}" title="Editar data" disabled>
                                         ${teamSelectHtml}
                                     </div>
                                 </div>
@@ -1768,11 +1915,13 @@
                 const subtitleFromSelect = getSubtitleFromScheduleSelect();
 
                 extraDates = [];
+                dateBlocks = [];
+                excludedDates = [];
 
                 const ui = SCHEDULE_HEADER_UI[scheduleType] || SCHEDULE_HEADER_FALLBACK;
                 editableTitlePart.textContent = ui.mainTitle;
                 locationPart.textContent = ui.useSelectSubtitle ? subtitleFromSelect : '';
-                addDayButton.classList.toggle('hidden', !ui.showAddDay);
+                customDateControls.classList.toggle('hidden', !ui.showAddDay);
 
                 generateCalendar(year, month, scheduleType);
                 updateTitle(year, month);
