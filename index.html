@@ -286,6 +286,38 @@
         #login-modal {
             background-color: rgba(0, 0, 0, 0.5);
         }
+        #delete-scale-modal {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .scale-card {
+            position: relative;
+        }
+        .scale-delete-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 9999px;
+            border: 1px solid #fecaca;
+            background: #fff;
+            color: #dc2626;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .scale-card:hover .scale-delete-btn,
+        .scale-card:focus-within .scale-delete-btn {
+            opacity: 1;
+        }
+        .scale-delete-btn:hover {
+            background: #fee2e2;
+            border-color: #f87171;
+        }
         .static-agent-name {
             display: none;
         }
@@ -299,7 +331,7 @@
             }
 
             /* 1. Oculta os elementos principais da UI do layout */
-            main, #login-modal {
+            main, #login-modal, #delete-scale-modal {
                 display: none !important;
             }
 
@@ -569,6 +601,25 @@
         </div>
     </div>
 
+    <!-- Modal de exclusão de escala -->
+    <div id="delete-scale-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-sm mx-4 max-h-[min(90dvh,100vh)] overflow-y-auto overscroll-contain">
+            <h2 class="text-xl font-bold text-center text-slate-800 mb-2">Excluir escala</h2>
+            <p id="delete-scale-message" class="text-sm text-slate-600 text-center mb-5"></p>
+            <form id="delete-scale-form">
+                <div class="mb-4">
+                    <label for="delete-scale-password" class="block text-sm font-medium text-slate-700">Senha</label>
+                    <input type="password" id="delete-scale-password" autocomplete="current-password" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required>
+                </div>
+                <p id="delete-scale-error" class="text-red-500 text-sm text-center mb-4 hidden"></p>
+                <div class="flex gap-2">
+                    <button type="button" id="delete-scale-cancel" class="flex-1 py-2 px-4 rounded-md font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" id="delete-scale-submit" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Excluir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <main class="max-w-none mx-auto bg-white px-2.5 py-3 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
         <!-- Cabeçalho com Título e Controles -->
         <div id="header" class="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-center lg:justify-between w-full mb-3 border-b border-slate-100 pb-3 sm:pb-4">
@@ -793,8 +844,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // Importando a LibSQL (Turso) para Web
         import { createClient } from "https://esm.sh/@libsql/client@0.14.0/web";
@@ -987,6 +1038,13 @@
             const loginButton = document.getElementById('login-button');
             const logoutButton = document.getElementById('logout-button');
             const loginModal = document.getElementById('login-modal');
+            const deleteScaleModal = document.getElementById('delete-scale-modal');
+            const deleteScaleForm = document.getElementById('delete-scale-form');
+            const deleteScaleMessage = document.getElementById('delete-scale-message');
+            const deleteScalePassword = document.getElementById('delete-scale-password');
+            const deleteScaleError = document.getElementById('delete-scale-error');
+            const deleteScaleCancel = document.getElementById('delete-scale-cancel');
+            const deleteScaleSubmit = document.getElementById('delete-scale-submit');
             const loginForm = document.getElementById('login-form');
             const loginError = document.getElementById('login-error');
             const tabsNav = document.getElementById('tabs-nav');
@@ -1044,6 +1102,7 @@
             const AUTOSAVE_DEBOUNCE_MS = 600;
             let periodSnapshotBeforeSelect = null;
             let saveChain = Promise.resolve();
+            let pendingDeleteScale = null;
 
             const capturePeriodSnapshot = () => ({
                 year: parseInt(yearSelect.value, 10),
@@ -1362,6 +1421,79 @@
 
             loginButton.addEventListener('click', () => loginModal.classList.remove('hidden'));
             logoutButton.addEventListener('click', logout);
+
+            const closeDeleteScaleModal = () => {
+                deleteScaleModal.classList.add('hidden');
+                deleteScaleForm.reset();
+                deleteScaleError.classList.add('hidden');
+                deleteScaleError.textContent = '';
+                pendingDeleteScale = null;
+            };
+
+            const openDeleteScaleModal = (scale) => {
+                pendingDeleteScale = scale;
+                deleteScaleMessage.textContent = `Digite sua senha para excluir "${scale.title || 'esta escala'}". Esta ação não pode ser desfeita.`;
+                deleteScaleError.classList.add('hidden');
+                deleteScaleError.textContent = '';
+                deleteScalePassword.value = '';
+                deleteScaleModal.classList.remove('hidden');
+                deleteScalePassword.focus();
+            };
+
+            const deleteScaleWithPassword = async (scaleId, password) => {
+                const user = auth.currentUser;
+                if (!user || user.isAnonymous || !user.email) {
+                    throw new Error('Faça login para excluir escalas.');
+                }
+                const credential = EmailAuthProvider.credential(user.email, password);
+                await reauthenticateWithCredential(user, credential);
+                const scheduleRef = doc(db, `schedules/${appId}/periods`, scaleId);
+                await deleteDoc(scheduleRef);
+            };
+
+            deleteScaleCancel.addEventListener('click', closeDeleteScaleModal);
+            deleteScaleModal.addEventListener('click', (e) => {
+                if (e.target === deleteScaleModal) closeDeleteScaleModal();
+            });
+            deleteScaleForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!pendingDeleteScale) return;
+
+                deleteScaleError.classList.add('hidden');
+                deleteScaleSubmit.disabled = true;
+                deleteScaleSubmit.textContent = 'Excluindo...';
+
+                try {
+                    await deleteScaleWithPassword(pendingDeleteScale.id, deleteScalePassword.value);
+
+                    const currentDocId = buildScheduleDocId(
+                        parseInt(yearSelect.value, 10),
+                        parseInt(monthSelect.value, 10),
+                        scheduleTypeSelect.value
+                    );
+                    if (pendingDeleteScale.id === currentDocId) {
+                        viagemDates = [];
+                        handleDateChange();
+                    }
+
+                    const deletedType = pendingDeleteScale.type;
+                    closeDeleteScaleModal();
+                    await loadPreviousScales(deletedType);
+                } catch (error) {
+                    console.error('Erro ao excluir escala:', error);
+                    if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                        deleteScaleError.textContent = 'Senha incorreta.';
+                    } else if (error.message) {
+                        deleteScaleError.textContent = error.message;
+                    } else {
+                        deleteScaleError.textContent = 'Não foi possível excluir a escala.';
+                    }
+                    deleteScaleError.classList.remove('hidden');
+                } finally {
+                    deleteScaleSubmit.disabled = false;
+                    deleteScaleSubmit.textContent = 'Excluir';
+                }
+            });
             
             addBlockButton.addEventListener('click', async () => {
                 if (scheduleTypeSelect.value !== 'extraordinaria_viagem') return;
@@ -1777,11 +1909,15 @@
                         const type = typeParts.join('-');
                         const monthName = PT_BR_MONTHS[parseInt(month, 10) - 1];
                         const meta = SCHEDULE_TYPE_CARD_META[type] || { label: type, chipClass: 'bg-slate-100 text-slate-700' };
+                        const canDelete = canPersistSchedule();
 
                         const card = document.createElement('div');
-                        card.className = 'block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
+                        card.className = 'scale-card block p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-indigo-400 cursor-pointer transition-all';
                         card.innerHTML = `
-                            <h3 class="font-bold text-slate-800">${scale.title}</h3>
+                            ${canDelete ? `<button type="button" class="scale-delete-btn" aria-label="Excluir escala" title="Excluir escala">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>` : ''}
+                            <h3 class="font-bold text-slate-800 pr-6">${scale.title}</h3>
                             <p class="text-sm text-slate-600">${monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()} / ${year}</p>
                             <p class="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full inline-block ${meta.chipClass}">${meta.label}</p>
                         `;
@@ -1797,6 +1933,11 @@
                             }
                             handleDateChange();
                             tabsNav.querySelector('button[data-tab="current-scale"]').click();
+                        });
+                        const deleteBtn = card.querySelector('.scale-delete-btn');
+                        deleteBtn?.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openDeleteScaleModal({ id: scale.id, title: scale.title, type: targetType });
                         });
                         listEl.appendChild(card);
                     });
