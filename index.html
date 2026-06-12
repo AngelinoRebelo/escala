@@ -1255,6 +1255,141 @@
                 "2025-11-15": ["PENNA", "EDUARDO"]
             };
 
+            function buildViagemPrintWeeks(datesList) {
+                if (!datesList.length) return { weeks: [], toneStartDate: null };
+                const viagemSet = new Set(datesList);
+                const sorted = [...datesList].sort();
+                const firstDate = parseISODate(sorted[0]);
+                const lastDate = parseISODate(sorted[sorted.length - 1]);
+                const toneStartDate = new Date(firstDate);
+
+                let current = new Date(firstDate);
+                while (current.getDay() !== 1) current.setDate(current.getDate() - 1);
+
+                let loopEnd = new Date(lastDate);
+                while (loopEnd.getDay() !== 0) loopEnd.setDate(loopEnd.getDate() + 1);
+
+                const weeks = [];
+                while (current <= loopEnd) {
+                    const week = Array(7).fill(null);
+                    for (let i = 0; i < 7; i++) {
+                        const dateStr = formatISODate(current);
+                        if (viagemSet.has(dateStr)) week[i] = new Date(current);
+                        current.setDate(current.getDate() + 1);
+                    }
+                    if (week.some((d) => d !== null)) weeks.push(week);
+                }
+                return { weeks, toneStartDate };
+            }
+
+            function renderPrintSummary(agentCounts) {
+                const sortedAgents = ALLOWED_NAMES.filter(name => agentCounts.hasOwnProperty(name));
+                if (sortedAgents.length === 0) {
+                    printSummaryBody.innerHTML = `
+                        <tr>
+                            <td colspan="2" style="text-align: center; padding: 12px; color: #64748b; font-style: italic;">
+                                Nenhum plantão registrado
+                            </td>
+                        </tr>`;
+                } else {
+                    sortedAgents.forEach(name => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="print-summary-name">${name}</td>
+                            <td class="print-summary-total">${agentCounts[name]}</td>
+                        `;
+                        printSummaryBody.appendChild(row);
+                    });
+                }
+            }
+
+            function getViagemWorkedDatesForPrint() {
+                const dates = [];
+                calendarBody.querySelectorAll('.viagem-day-cell--filled').forEach((cell) => {
+                    const dateStr = cell.dataset.slotDate;
+                    if (!dateStr) return;
+                    const hasAgent = [...cell.querySelectorAll('.agent-name-input')].some((input) => {
+                        const name = input.value.trim();
+                        return name && name !== 'ESCALA';
+                    });
+                    if (hasAgent) dates.push(dateStr);
+                });
+                return dates.sort();
+            }
+
+            function prepareViagemForPrint(agentCounts) {
+                const datesForPrint = getViagemWorkedDatesForPrint();
+
+                const { weeks, toneStartDate } = buildViagemPrintWeeks(datesForPrint);
+
+                if (weeks.length === 0) {
+                    printBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;">Nenhum dia trabalhado na escala</td></tr>';
+                    return;
+                }
+
+                const monthWeeksCount = {};
+                weeks.forEach((week) => {
+                    const firstDay = week.find((d) => d);
+                    if (firstDay) {
+                        const mKey = firstDay.getMonth();
+                        monthWeeksCount[mKey] = (monthWeeksCount[mKey] || 0) + 1;
+                    }
+                });
+
+                const renderedMonths = [];
+                weeks.forEach((week) => {
+                    const row = document.createElement('tr');
+                    const firstDayOfWeek = week.find((d) => d);
+
+                    if (firstDayOfWeek && !renderedMonths.includes(firstDayOfWeek.getMonth())) {
+                        const monthKey = firstDayOfWeek.getMonth();
+                        const monthName = new Date(firstDayOfWeek.getFullYear(), monthKey)
+                            .toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+                        const monthTone = monthKey === toneStartDate.getMonth() ? '--indigo' : '--blue';
+                        const monthCell = document.createElement('td');
+                        monthCell.className = `print-month-cell print-month-cell${monthTone}`;
+                        monthCell.textContent = monthName;
+                        monthCell.rowSpan = monthWeeksCount[monthKey];
+                        row.appendChild(monthCell);
+                        renderedMonths.push(monthKey);
+                    }
+
+                    week.forEach((day, dayIndex) => {
+                        const printDayCell = document.createElement('td');
+                        if (dayIndex >= WEEKEND_START_COL) printDayCell.classList.add('print-day-cell-weekend');
+
+                        if (day) {
+                            const dateStr = formatISODate(day);
+                            const dayCell = calendarBody.querySelector(`.viagem-day-cell--filled[data-slot-date="${dateStr}"]`);
+                            const labelTone = day.getMonth() === toneStartDate.getMonth()
+                                ? 'print-date-label--indigo'
+                                : 'print-date-label--blue';
+                            const dateText = formatDateForDisplay(dateStr);
+                            const agentNames = [];
+                            dayCell?.querySelectorAll('.agent-name-input').forEach((input) => {
+                                const agentName = input.value.trim();
+                                if (!agentName) return;
+                                agentNames.push(agentName);
+                                if (agentName !== 'ESCALA') {
+                                    agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
+                                }
+                            });
+                            printDayCell.innerHTML = `
+                                <div class="print-date-label ${labelTone}"><span>${dateText}</span></div>
+                                <div class="agent-names-container">
+                                    ${agentNames.map((name) =>
+                                        `<div class="static-agent-name ${name === 'ESCALA' ? 'blurred-text' : ''}">${name}</div>`
+                                    ).join('')}
+                                </div>`;
+                        } else {
+                            printDayCell.innerHTML = '&nbsp;';
+                        }
+                        row.appendChild(printDayCell);
+                    });
+                    printBody.appendChild(row);
+                });
+            }
+
             function prepareForPrint() {
                 debugLog('Preparando impressão (calendário)…');
                 const month = parseInt(monthSelect.value, 10);
@@ -1274,6 +1409,13 @@
                 printSummaryBody.innerHTML = '';
                 
                 const agentCounts = {};
+
+                if (scheduleTypeSelect.value === 'extraordinaria_viagem') {
+                    prepareViagemForPrint(agentCounts);
+                    renderPrintSummary(agentCounts);
+                    debugLog('Impressão (viagem) preparada.');
+                    return;
+                }
                 
                 // CORREÇÃO: Processar CADA LINHA da tabela principal
                 const calendarRows = calendarBody.querySelectorAll('tr');
@@ -1344,27 +1486,7 @@
                     printBody.appendChild(printRow);
                 });
 
-                // Resumo na ordem de ALLOWED_NAMES
-                // Filtramos ALLOWED_NAMES para pegar apenas os que têm contagem > 0
-                const sortedAgents = ALLOWED_NAMES.filter(name => agentCounts.hasOwnProperty(name));
-                
-                if (sortedAgents.length === 0) {
-                    printSummaryBody.innerHTML = `
-                        <tr>
-                            <td colspan="2" style="text-align: center; padding: 12px; color: #64748b; font-style: italic;">
-                                Nenhum plantão registrado
-                            </td>
-                        </tr>`;
-                } else {
-                    sortedAgents.forEach(name => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td class="print-summary-name">${name}</td>
-                            <td class="print-summary-total">${agentCounts[name]}</td>
-                        `;
-                        printSummaryBody.appendChild(row);
-                    });
-                }
+                renderPrintSummary(agentCounts);
                 
                 debugLog('Impressão (calendário) preparada.');
             }
