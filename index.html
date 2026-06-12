@@ -318,6 +318,15 @@
             background: #fee2e2;
             border-color: #f87171;
         }
+        #file-manager-section.is-collapsed #file-manager-panel {
+            display: none;
+        }
+        #file-manager-section.is-collapsed .file-manager-chevron {
+            transform: rotate(-90deg);
+        }
+        .file-manager-chevron {
+            transition: transform 0.2s ease;
+        }
         .static-agent-name {
             display: none;
         }
@@ -694,26 +703,29 @@
         </div>
 
         <!-- NOVO BLOCO: Gerenciamento de Arquivo Turso -->
-        <div id="file-manager-section" class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 w-full md:w-auto">
-                <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    Arquivo da Escala
-                </h3>
-                <p id="current-file-status" class="text-xs text-slate-500">Nenhum arquivo disponível.</p>
-            </div>
+        <div id="file-manager-section" class="mb-6 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+            <button type="button" id="file-manager-toggle" class="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-slate-100/80 transition-colors touch-manipulation" aria-expanded="true" aria-controls="file-manager-panel">
+                <div class="flex flex-col gap-1 min-w-0 flex-1">
+                    <span class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Arquivo da Escala
+                    </span>
+                    <p id="current-file-status" class="text-xs text-slate-500 truncate">Nenhum arquivo disponível.</p>
+                </div>
+                <svg class="file-manager-chevron shrink-0 text-slate-500" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
 
-            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+            <div id="file-manager-panel" class="px-4 pb-4 flex flex-wrap items-center gap-3 justify-stretch sm:justify-end border-t border-slate-200/80">
                 <!-- Botão de Download (Turso) -->
-                <button id="turso-download-btn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 transition-colors">
+                <button id="turso-download-btn" class="hidden flex items-center justify-center gap-2 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     Baixar Arquivo
                 </button>
 
                 <!-- Input e Botão de Upload (Turso) -->
-                <div id="turso-upload-container" class="hidden flex items-center gap-2">
+                <div id="turso-upload-container" class="hidden flex flex-wrap items-center gap-2">
                     <input type="file" id="turso-file-input" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
-                    <label for="turso-file-input" class="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-md hover:bg-indigo-200 transition-colors">
+                    <label for="turso-file-input" class="cursor-pointer flex items-center justify-center gap-2 px-3 py-1.5 bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-md hover:bg-indigo-200 transition-colors">
                         Escolher Arquivo
                     </label>
                     <button id="turso-upload-btn" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -1106,6 +1118,13 @@
             // Inicializa Turso
             initTurso();
 
+            const fileManagerSection = document.getElementById('file-manager-section');
+            const fileManagerToggle = document.getElementById('file-manager-toggle');
+            fileManagerToggle?.addEventListener('click', () => {
+                const collapsed = fileManagerSection.classList.toggle('is-collapsed');
+                fileManagerToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            });
+
             // Datas da escala Viagem (YYYY-MM-DD)
             let viagemDates = [];
             let autoSaveDebounceTimer = null;
@@ -1113,6 +1132,7 @@
             let periodSnapshotBeforeSelect = null;
             let saveChain = Promise.resolve();
             let pendingDeleteScale = null;
+            const deletedDocIds = new Set();
 
             const capturePeriodSnapshot = () => ({
                 year: parseInt(yearSelect.value, 10),
@@ -1462,6 +1482,11 @@
             };
 
             const deleteScaleWithPassword = async (scaleId, password) => {
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = null;
+                deletedDocIds.add(scaleId);
+                await saveChain;
+
                 const user = auth.currentUser;
                 if (!user || user.isAnonymous || !user.email) {
                     throw new Error('Faça login para excluir escalas.');
@@ -1494,13 +1519,14 @@
                     );
                     if (pendingDeleteScale.id === currentDocId) {
                         if (scheduleTypeSelect.value === 'extraordinaria_viagem') viagemDates = [];
-                        handleDateChange();
+                        handleDateChange({ preserveDeletedBlock: true });
                     }
 
                     const deletedType = pendingDeleteScale.type;
                     closeDeleteScaleModal();
                     await loadPreviousScales(deletedType);
                 } catch (error) {
+                    deletedDocIds.delete(pendingDeleteScale.id);
                     console.error('Erro ao excluir escala:', error);
                     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                         deleteScaleError.textContent = 'Senha incorreta.';
@@ -1711,6 +1737,9 @@
                     const month = typeof opts.month === 'number' ? opts.month : parseInt(monthSelect.value, 10);
                     const scheduleType = opts.scheduleType !== undefined ? opts.scheduleType : scheduleTypeSelect.value;
                     const docId = buildScheduleDocId(year, month, scheduleType);
+
+                    if (deletedDocIds.has(docId) && !opts.forceSave) return;
+                    if (opts.forceSave) deletedDocIds.delete(docId);
 
                     if (!silent) {
                         saveButton.disabled = true;
@@ -2272,11 +2301,15 @@
             };
             const SCHEDULE_HEADER_FALLBACK = { mainTitle: 'ESCALA', useSelectSubtitle: false, showAddDay: false };
             
-            const handleDateChange = () => {
+            const handleDateChange = (opts = {}) => {
                 const year = parseInt(yearSelect.value, 10);
                 const month = parseInt(monthSelect.value, 10);
                 const scheduleType = scheduleTypeSelect.value;
                 const subtitleFromSelect = getSubtitleFromScheduleSelect();
+
+                if (!opts.preserveDeletedBlock) {
+                    deletedDocIds.delete(buildScheduleDocId(year, month, scheduleType));
+                }
 
                 viagemDates = [];
 
@@ -2369,7 +2402,7 @@
                 handleDateChange();
             };
             
-            saveButton.addEventListener('click', () => saveScheduleData({ silent: false }));
+            saveButton.addEventListener('click', () => saveScheduleData({ silent: false, forceSave: true }));
             monthSelect.addEventListener('change', handleHeaderPeriodChange);
             yearSelect.addEventListener('change', handleHeaderPeriodChange);
             scheduleTypeSelect.addEventListener('change', handleHeaderPeriodChange);
