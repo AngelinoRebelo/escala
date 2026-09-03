@@ -897,6 +897,49 @@
             return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${scheduleType}`;
         }
 
+        const LEGACY_SCHEDULE_TYPE_ALIASES = {
+            'ordinaria-nelson': 'ordinaria_nelson',
+            'extraordinaria-viagem': 'extraordinaria_viagem',
+            'fim-de-semana': 'fimdesemana',
+            'fim-de-semana-feriado': 'fimdesemana',
+            fds: 'fimdesemana'
+        };
+
+        const LEGACY_DOC_SUFFIXES_BY_TYPE = {
+            ordinaria: [''],
+            ordinaria_nelson: ['ordinaria-nelson'],
+            fimdesemana: ['fds', 'fim-de-semana', 'fim-de-semana-feriado'],
+            extraordinaria_viagem: ['extraordinaria-viagem']
+        };
+
+        function normalizeScheduleType(scheduleType) {
+            return LEGACY_SCHEDULE_TYPE_ALIASES[scheduleType] || scheduleType;
+        }
+
+        function parseScheduleDocId(docId) {
+            const match = /^(\d{4})-(\d{1,2})(?:-(.+))?$/.exec(docId);
+            if (!match) return null;
+
+            const monthNumber = Number(match[2]);
+            if (!Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) return null;
+
+            return {
+                year: match[1],
+                month: String(monthNumber).padStart(2, '0'),
+                monthIndex: monthNumber - 1,
+                type: normalizeScheduleType(match[3] || 'ordinaria')
+            };
+        }
+
+        function buildScheduleDocIdCandidates(year, monthIndex, scheduleType) {
+            const yearMonth = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+            const ids = [buildScheduleDocId(year, monthIndex, scheduleType)];
+            (LEGACY_DOC_SUFFIXES_BY_TYPE[scheduleType] || []).forEach((suffix) => {
+                ids.push(suffix ? `${yearMonth}-${suffix}` : yearMonth);
+            });
+            return [...new Set(ids)];
+        }
+
         function printToneSuffix(element) {
             return element?.classList.contains('bg-indigo-500') ? '--indigo' : '--blue';
         }
@@ -1979,11 +2022,13 @@
                     console.error("Load failed: DB not initialized or user not authenticated.");
                     return;
                 }
-                const docId = buildScheduleDocId(year, month, scheduleType);
-                const scheduleRef = doc(db, `schedules/${appId}/periods`, docId); 
-                
                 try {
-                    const docSnap = await getDoc(scheduleRef);
+                    let docSnap = null;
+                    for (const docId of buildScheduleDocIdCandidates(year, month, scheduleType)) {
+                        const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+                        docSnap = await getDoc(scheduleRef);
+                        if (docSnap.exists()) break;
+                    }
                     const data = docSnap.exists() ? docSnap.data() : null;
                     
                     let scheduleData;
@@ -2066,10 +2111,9 @@
                     const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
                     querySnapshot.forEach((docSnap) => {
-                        const [y, m, ...typeParts] = docSnap.id.split('-');
-                        const type = typeParts.join('-');
-                        if (type === targetType) {
-                            scales.push({ id: docSnap.id, ...docSnap.data() });
+                        const parsedDocId = parseScheduleDocId(docSnap.id);
+                        if (parsedDocId?.type === targetType) {
+                            scales.push({ id: docSnap.id, parsedDocId, ...docSnap.data() });
                         }
                     });
 
@@ -2079,12 +2123,11 @@
                         return;
                     }
                     
-                    scales.sort((a, b) => b.id.localeCompare(a, b));
+                    scales.sort((a, b) => b.id.localeCompare(a.id));
 
                     scales.forEach(scale => {
-                        const [year, month, ...typeParts] = scale.id.split('-');
-                        const type = typeParts.join('-');
-                        const monthName = PT_BR_MONTHS[parseInt(month, 10) - 1];
+                        const { year, monthIndex, type } = scale.parsedDocId;
+                        const monthName = PT_BR_MONTHS[monthIndex];
                         const meta = SCHEDULE_TYPE_CARD_META[type] || { label: type, chipClass: 'bg-slate-100 text-slate-700' };
 
                         const card = document.createElement('div');
@@ -2099,8 +2142,9 @@
                         `;
                         card.addEventListener('click', async () => {
                             const prev = capturePeriodSnapshot();
+                            ensureYearInSelect(parseInt(year, 10));
                             yearSelect.value = year;
-                            monthSelect.value = parseInt(month, 10) - 1;
+                            monthSelect.value = monthIndex;
                             scheduleTypeSelect.value = type;
                             try {
                                 await flushPeriodChangeSave(prev);
