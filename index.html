@@ -2024,10 +2024,17 @@
                 }
                 try {
                     let docSnap = null;
-                    for (const docId of buildScheduleDocIdCandidates(year, month, scheduleType)) {
-                        const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
-                        docSnap = await getDoc(scheduleRef);
-                        if (docSnap.exists()) break;
+                    const basePaths = [
+                        `schedules/${appId}/periods`,
+                        `artifacts/${appId}/users/${userId}/periods`
+                    ];
+                    outer:
+                    for (const basePath of basePaths) {
+                        for (const docId of buildScheduleDocIdCandidates(year, month, scheduleType)) {
+                            const scheduleRef = doc(db, basePath, docId);
+                            docSnap = await getDoc(scheduleRef);
+                            if (docSnap.exists()) break outer;
+                        }
                     }
                     const data = docSnap.exists() ? docSnap.data() : null;
                     
@@ -2105,17 +2112,26 @@
 
                 listEl.innerHTML = '<p class="text-slate-500">Carregando escalas salvas...</p>';
 
-                const schedulesRef = collection(db, `schedules/${appId}/periods`);
+                const collectionPaths = [
+                    `schedules/${appId}/periods`,
+                    `artifacts/${appId}/users/${userId}/periods`
+                ];
 
                 try {
-                    const querySnapshot = await getDocs(schedulesRef);
                     const scales = [];
-                    querySnapshot.forEach((docSnap) => {
-                        const parsedDocId = parseScheduleDocId(docSnap.id);
-                        if (parsedDocId?.type === targetType) {
-                            scales.push({ id: docSnap.id, parsedDocId, ...docSnap.data() });
-                        }
-                    });
+                    const seenIds = new Set();
+                    for (const colPath of collectionPaths) {
+                        const colRef = collection(db, colPath);
+                        const querySnapshot = await getDocs(colRef);
+                        querySnapshot.forEach((docSnap) => {
+                            if (seenIds.has(docSnap.id)) return;
+                            const parsedDocId = parseScheduleDocId(docSnap.id);
+                            if (parsedDocId?.type === targetType) {
+                                seenIds.add(docSnap.id);
+                                scales.push({ id: docSnap.id, parsedDocId, ...docSnap.data() });
+                            }
+                        });
+                    }
 
                     listEl.innerHTML = '';
                     if (scales.length === 0) {
