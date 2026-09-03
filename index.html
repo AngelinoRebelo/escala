@@ -1176,6 +1176,7 @@
             let saveChain = Promise.resolve();
             let pendingDeleteScale = null;
             const deletedDocIds = new Set();
+            let isLoadingSchedule = false;
 
             const capturePeriodSnapshot = () => ({
                 year: parseInt(yearSelect.value, 10),
@@ -1885,6 +1886,7 @@
             const saveScheduleData = (opts = {}) => {
                 const run = async () => {
                     const silent = opts.silent === true;
+                    if (isLoadingSchedule && silent) return;
                     if (!db || !auth.currentUser || !userId) {
                         if (!silent) console.error("Save failed: DB not initialized or user not authenticated.");
                         return;
@@ -2022,6 +2024,7 @@
                     console.error("Load failed: DB not initialized or user not authenticated.");
                     return;
                 }
+                isLoadingSchedule = true;
                 try {
                     let docSnap = null;
                     const basePaths = [
@@ -2095,6 +2098,8 @@
                 } catch(error) {
                     console.error("Error loading schedule data:", error);
                     updateSummary();
+                } finally {
+                    isLoadingSchedule = false;
                 }
             };
             
