@@ -639,6 +639,17 @@
         </div>
     </div>
 
+    <!-- Modal de recuperação de backup -->
+    <div id="backup-restore-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-lg mx-4 max-h-[min(90dvh,100vh)] overflow-y-auto overscroll-contain">
+            <h2 class="text-xl font-bold text-center text-slate-800 mb-2">Recuperar backup</h2>
+            <p class="text-sm text-slate-600 text-center mb-4">Escolha um backup completo das escalas. A restauração sobrescreve os dados atuais no Firestore.</p>
+            <div id="backup-restore-list" class="space-y-2 mb-4 max-h-72 overflow-y-auto"></div>
+            <p id="backup-restore-error" class="text-red-500 text-sm text-center mb-3 hidden"></p>
+            <button type="button" id="backup-restore-close" class="w-full py-2 px-4 rounded-md font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50">Fechar</button>
+        </div>
+    </div>
+
     <main class="max-w-none mx-auto bg-white px-2.5 py-3 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
         <!-- Cabeçalho com Título e Controles -->
         <div id="header" class="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-center lg:justify-between w-full mb-3 border-b border-slate-100 pb-3 sm:pb-4">
@@ -734,6 +745,27 @@
                 </div>
                 <div id="turso-loading" class="hidden">
                     <div class="spinner border-2 border-indigo-200 border-l-indigo-600 rounded-full w-5 h-5 animate-spin"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backup das escalas (Turso / Railway) -->
+        <div id="backup-section" class="mb-6 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+            <div class="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0 flex-1">
+                    <span class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-600 shrink-0"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        Backup das Escalas
+                    </span>
+                    <p id="backup-status" class="text-xs text-slate-500 mt-1">Salve uma cópia de todas as escalas no Turso (Railway). Só disponível com login.</p>
+                </div>
+                <div id="backup-actions" class="hidden flex flex-wrap items-center gap-2 justify-stretch sm:justify-end">
+                    <button type="button" id="backup-create-btn" class="flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-md hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Fazer Backup
+                    </button>
+                    <button type="button" id="backup-restore-btn" class="flex items-center justify-center gap-2 px-3 py-1.5 bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold rounded-md hover:bg-amber-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Recuperar Backup
+                    </button>
                 </div>
             </div>
         </div>
@@ -973,10 +1005,22 @@
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 `);
-                debugLog('Turso: conectado e tabela verificada.');
+                // Backup completo das escalas (JSON de todos os períodos do Firestore)
+                await tursoClient.execute(`
+                    CREATE TABLE IF NOT EXISTS schedule_backups (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        label TEXT,
+                        payload TEXT NOT NULL,
+                        period_count INTEGER DEFAULT 0,
+                        created_by TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+                debugLog('Turso: conectado e tabelas verificadas.');
                 
                 // Verifica se há arquivo
                 checkLatestFile();
+                refreshBackupStatus();
             } catch (error) {
                 console.error("Erro ao inicializar Turso:", error);
             }
@@ -1083,6 +1127,132 @@
             }
         };
 
+        const serializeBackupValue = (value) => {
+            if (value == null) return value;
+            if (typeof value?.toDate === 'function') return value.toDate().toISOString();
+            if (Array.isArray(value)) return value.map(serializeBackupValue);
+            if (typeof value === 'object') {
+                const out = {};
+                Object.entries(value).forEach(([key, nested]) => {
+                    out[key] = serializeBackupValue(nested);
+                });
+                return out;
+            }
+            return value;
+        };
+
+        const refreshBackupStatus = async () => {
+            const statusEl = document.getElementById('backup-status');
+            if (!statusEl) return;
+            if (!tursoClient) {
+                statusEl.textContent = 'Aguardando conexão com o banco de backup…';
+                return;
+            }
+            try {
+                const result = await tursoClient.execute(
+                    'SELECT id, label, period_count, created_at FROM schedule_backups ORDER BY id DESC LIMIT 1'
+                );
+                if (result.rows.length === 0) {
+                    statusEl.textContent = 'Nenhum backup completo ainda. Use “Fazer Backup” (requer login).';
+                    return;
+                }
+                const row = result.rows[0];
+                statusEl.innerHTML = `Último backup: <strong>${row.label || ('#' + row.id)}</strong> — ${row.period_count} escalas — ${row.created_at}`;
+            } catch (error) {
+                console.error('Erro ao consultar backups:', error);
+                statusEl.textContent = 'Erro ao consultar backups no Turso.';
+            }
+        };
+
+        const collectAllSchedulePeriodsForBackup = async () => {
+            if (!db || !appId) throw new Error('Firestore não inicializado.');
+            const schedulesRef = collection(db, `schedules/${appId}/periods`);
+            const querySnapshot = await getDocs(schedulesRef);
+            const periods = [];
+            querySnapshot.forEach((docSnap) => {
+                const raw = docSnap.data() || {};
+                periods.push({
+                    id: docSnap.id,
+                    ...serializeBackupValue(raw)
+                });
+            });
+            periods.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+            return periods;
+        };
+
+        const createFullScheduleBackup = async () => {
+            if (!tursoClient) throw new Error('Turso não conectado.');
+            if (!auth?.currentUser || auth.currentUser.isAnonymous) {
+                throw new Error('Faça login para criar backup.');
+            }
+            const periods = await collectAllSchedulePeriodsForBackup();
+            if (periods.length === 0) {
+                throw new Error('Nenhuma escala encontrada no Firestore para backup.');
+            }
+            const now = new Date();
+            const label = `Backup completo ${now.toLocaleString('pt-BR')}`;
+            const payload = JSON.stringify({
+                version: 1,
+                type: 'full-schedules',
+                appId,
+                createdAt: now.toISOString(),
+                createdBy: auth.currentUser.email || auth.currentUser.uid,
+                periods
+            });
+            await tursoClient.execute({
+                sql: 'INSERT INTO schedule_backups (label, payload, period_count, created_by) VALUES (?, ?, ?, ?)',
+                args: [label, payload, periods.length, auth.currentUser.email || auth.currentUser.uid]
+            });
+            await refreshBackupStatus();
+            return { label, periodCount: periods.length };
+        };
+
+        const listScheduleBackups = async () => {
+            if (!tursoClient) throw new Error('Turso não conectado.');
+            const result = await tursoClient.execute(
+                'SELECT id, label, period_count, created_by, created_at FROM schedule_backups ORDER BY id DESC LIMIT 30'
+            );
+            return result.rows;
+        };
+
+        const restoreFullScheduleBackup = async (backupId) => {
+            if (!tursoClient) throw new Error('Turso não conectado.');
+            if (!db || !appId) throw new Error('Firestore não inicializado.');
+            if (!auth?.currentUser || auth.currentUser.isAnonymous) {
+                throw new Error('Faça login para recuperar backup.');
+            }
+            const result = await tursoClient.execute({
+                sql: 'SELECT payload FROM schedule_backups WHERE id = ?',
+                args: [backupId]
+            });
+            if (result.rows.length === 0) throw new Error('Backup não encontrado.');
+
+            let parsed;
+            try {
+                parsed = JSON.parse(result.rows[0].payload);
+            } catch (_) {
+                throw new Error('Backup corrompido (JSON inválido).');
+            }
+            const periods = Array.isArray(parsed?.periods) ? parsed.periods : [];
+            if (periods.length === 0) throw new Error('Backup sem escalas.');
+
+            for (const period of periods) {
+                if (!period?.id) continue;
+                const dataToSave = {
+                    title: period.title || 'ESCALA',
+                    schedule: period.schedule || {},
+                    teams: period.teams || {},
+                    createdAt: period.createdAt ? new Date(period.createdAt) : new Date()
+                };
+                if (Array.isArray(period.viagemDates)) {
+                    dataToSave.viagemDates = period.viagemDates;
+                }
+                const scheduleRef = doc(db, `schedules/${appId}/periods`, period.id);
+                await setDoc(scheduleRef, dataToSave);
+            }
+            return periods.length;
+        };
+
 
         const initializeAppLogic = () => {
             if (isAppInitialized) return;
@@ -1113,6 +1283,13 @@
             const loginForm = document.getElementById('login-form');
             const loginError = document.getElementById('login-error');
             const tabsNav = document.getElementById('tabs-nav');
+            const backupActions = document.getElementById('backup-actions');
+            const backupCreateBtn = document.getElementById('backup-create-btn');
+            const backupRestoreBtn = document.getElementById('backup-restore-btn');
+            const backupRestoreModal = document.getElementById('backup-restore-modal');
+            const backupRestoreList = document.getElementById('backup-restore-list');
+            const backupRestoreError = document.getElementById('backup-restore-error');
+            const backupRestoreClose = document.getElementById('backup-restore-close');
             const tabContents = document.querySelectorAll('.tab-content');
             const pastScalesListMariana = document.getElementById('past-scales-list-mariana');
             const pastScalesListNelson = document.getElementById('past-scales-list-nelson');
@@ -1213,6 +1390,100 @@
 
             // Event Listener Upload
             tursoUploadBtn.addEventListener('click', uploadFileToTurso);
+
+            const openBackupRestoreModal = async () => {
+                if (!canPersistSchedule()) {
+                    alert('Faça login para recuperar backup.');
+                    return;
+                }
+                backupRestoreError.classList.add('hidden');
+                backupRestoreError.textContent = '';
+                backupRestoreList.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Carregando backups…</p>';
+                backupRestoreModal.classList.remove('hidden');
+                try {
+                    const rows = await listScheduleBackups();
+                    if (rows.length === 0) {
+                        backupRestoreList.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Nenhum backup encontrado.</p>';
+                        return;
+                    }
+                    backupRestoreList.innerHTML = '';
+                    rows.forEach((row) => {
+                        const item = document.createElement('div');
+                        item.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border border-slate-200 rounded-lg bg-slate-50';
+                        item.innerHTML = `
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 truncate">${row.label || ('Backup #' + row.id)}</p>
+                                <p class="text-xs text-slate-500">${row.period_count} escalas · ${row.created_at}${row.created_by ? ' · ' + row.created_by : ''}</p>
+                            </div>
+                            <button type="button" class="backup-restore-item-btn px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-md hover:bg-amber-700 transition-colors" data-backup-id="${row.id}">
+                                Recuperar
+                            </button>
+                        `;
+                        backupRestoreList.appendChild(item);
+                    });
+                } catch (error) {
+                    console.error('Erro ao listar backups:', error);
+                    backupRestoreList.innerHTML = '';
+                    backupRestoreError.textContent = error.message || 'Erro ao carregar backups.';
+                    backupRestoreError.classList.remove('hidden');
+                }
+            };
+
+            backupCreateBtn?.addEventListener('click', async () => {
+                if (!canPersistSchedule()) {
+                    alert('Faça login para criar backup.');
+                    return;
+                }
+                const original = backupCreateBtn.textContent;
+                backupCreateBtn.disabled = true;
+                backupCreateBtn.textContent = 'Gerando…';
+                try {
+                    const result = await createFullScheduleBackup();
+                    alert(`Backup completo criado.\n${result.periodCount} escalas salvas no Turso.`);
+                } catch (error) {
+                    console.error('Erro ao criar backup:', error);
+                    alert(error.message || 'Não foi possível criar o backup.');
+                } finally {
+                    backupCreateBtn.disabled = false;
+                    backupCreateBtn.textContent = original;
+                }
+            });
+
+            backupRestoreBtn?.addEventListener('click', () => {
+                openBackupRestoreModal();
+            });
+
+            backupRestoreClose?.addEventListener('click', () => {
+                backupRestoreModal.classList.add('hidden');
+            });
+            backupRestoreModal?.addEventListener('click', (e) => {
+                if (e.target === backupRestoreModal) backupRestoreModal.classList.add('hidden');
+            });
+            backupRestoreList?.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.backup-restore-item-btn');
+                if (!btn) return;
+                const backupId = Number(btn.dataset.backupId);
+                if (!backupId) return;
+                if (!confirm('Recuperar este backup? Isso sobrescreve todas as escalas atuais no Firestore com o conteúdo do backup.')) {
+                    return;
+                }
+                btn.disabled = true;
+                btn.textContent = 'Restaurando…';
+                backupRestoreError.classList.add('hidden');
+                try {
+                    const count = await restoreFullScheduleBackup(backupId);
+                    backupRestoreModal.classList.add('hidden');
+                    alert(`Backup restaurado: ${count} escalas gravadas no Firestore.`);
+                    handleDateChange();
+                } catch (error) {
+                    console.error('Erro ao restaurar backup:', error);
+                    backupRestoreError.textContent = error.message || 'Falha ao restaurar backup.';
+                    backupRestoreError.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Recuperar';
+                }
+            });
+
             // Mostrar nome do arquivo selecionado no botão label (opcional, mas bom para UX)
             tursoFileInput.addEventListener('change', (e) => {
                 const label = e.target.nextElementSibling;
@@ -1592,6 +1863,7 @@
                 logoutButton.classList.remove('hidden');
                 
                 document.getElementById('turso-upload-container').classList.remove('hidden');
+                backupActions?.classList.remove('hidden');
                 
                 const isViagem = scheduleTypeSelect.value === 'extraordinaria_viagem';
                 calendarTable?.classList.toggle('calendar-readonly', !isViagem);
@@ -1604,6 +1876,7 @@
                     btn.classList.toggle('cursor-not-allowed', !isViagem);
                 });
                 refreshVisiblePastScalesList();
+                refreshBackupStatus();
             };
 
             const disableEditing = () => {
@@ -1616,6 +1889,7 @@
                 logoutButton.classList.add('hidden');
                 
                 document.getElementById('turso-upload-container').classList.add('hidden');
+                backupActions?.classList.add('hidden');
                 calendarTable?.classList.add('calendar-readonly');
                 
                 addBlockButton.disabled = true;
