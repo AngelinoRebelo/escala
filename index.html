@@ -1177,6 +1177,9 @@
             let pendingDeleteScale = null;
             const deletedDocIds = new Set();
             let isLoadingSchedule = false;
+            let loadToken = 0;
+            // Último schedule conhecido por docId — evita autosave apagar dados já carregados/salvos
+            const lastPersistedByDocId = new Map();
 
             const capturePeriodSnapshot = () => ({
                 year: parseInt(yearSelect.value, 10),
@@ -1185,6 +1188,28 @@
             });
             const periodsDiffer = (a, b) =>
                 !a || !b || a.year !== b.year || a.month !== b.month || a.scheduleType !== b.scheduleType;
+
+            const countAssignedAgents = (schedule) => {
+                if (!schedule || typeof schedule !== 'object') return 0;
+                let total = 0;
+                Object.values(schedule).forEach((agents) => {
+                    if (Array.isArray(agents)) {
+                        agents.forEach((name) => { if (name) total += 1; });
+                    } else if (agents && typeof agents === 'object') {
+                        Object.values(agents).forEach((name) => { if (name) total += 1; });
+                    }
+                });
+                return total;
+            };
+            const isSchedulePayloadEmpty = (schedule) => countAssignedAgents(schedule) === 0;
+            const rememberPersistedSchedule = (docId, payload) => {
+                lastPersistedByDocId.set(docId, {
+                    schedule: payload.schedule || {},
+                    teams: payload.teams || {},
+                    title: payload.title || '',
+                    viagemDates: Array.isArray(payload.viagemDates) ? [...payload.viagemDates] : undefined
+                });
+            };
 
             // Event Listener Upload
             tursoUploadBtn.addEventListener('click', uploadFileToTurso);
@@ -1731,7 +1756,7 @@
                 if (scheduleTypeSelect.value !== 'extraordinaria_viagem') return;
                 if (!confirm('Limpar todas as datas e agentes desta escala de viagem?')) return;
                 viagemDates = [];
-                await saveScheduleData({ silent: true, schedule: {}, teams: {} });
+                await saveScheduleData({ silent: true, schedule: {}, teams: {}, allowEmptyOverwrite: true });
                 generateCalendar(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10), scheduleTypeSelect.value);
             });
 
@@ -1886,6 +1911,8 @@
             const saveScheduleData = (opts = {}) => {
                 const run = async () => {
                     const silent = opts.silent === true;
+                    // Autosave / flush só com sessão logada (não anônima)
+                    if (silent && !canPersistSchedule()) return;
                     if (isLoadingSchedule && silent) return;
                     if (!db || !auth.currentUser || !userId) {
                         if (!silent) console.error("Save failed: DB not initialized or user not authenticated.");
@@ -1917,19 +1944,40 @@
                         ? { schedule: opts.schedule, teams: opts.teams || {} }
                         : collectScheduleFromDOM(calendarBody);
 
+                    // Autosave nunca grava escala vazia (só limpeza explícita com allowEmptyOverwrite)
+                    if (silent && !opts.allowEmptyOverwrite && isSchedulePayloadEmpty(scheduleData)) {
+                        const cached = lastPersistedByDocId.get(docId);
+                        if (cached && !isSchedulePayloadEmpty(cached.schedule)) {
+                            console.warn('Autosave bloqueado: DOM vazio, mas havia escala salva/carregada.', docId);
+                        } else {
+                            try {
+                                const existingRef = doc(db, `schedules/${appId}/periods`, docId);
+                                const existingSnap = await getDoc(existingRef);
+                                if (existingSnap.exists() && !isSchedulePayloadEmpty(existingSnap.data()?.schedule)) {
+                                    console.warn('Autosave bloqueado: evitaria sobrescrever escala existente com dados vazios.', docId);
+                                    rememberPersistedSchedule(docId, existingSnap.data());
+                                }
+                            } catch (err) {
+                                console.warn('Autosave: falha ao verificar escala existente.', err);
+                            }
+                        }
+                        return;
+                    }
+
                     const dataToSave = {
-                        title: editableTitlePart.textContent,
+                        title: opts.title !== undefined ? opts.title : editableTitlePart.textContent,
                         schedule: scheduleData,
                         teams: teamsData,
                         createdAt: new Date()
                     };
                     if (scheduleType === 'extraordinaria_viagem') {
-                        dataToSave.viagemDates = viagemDates;
+                        dataToSave.viagemDates = opts.viagemDates !== undefined ? opts.viagemDates : viagemDates;
                     }
 
                     try {
                         const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
                         await setDoc(scheduleRef, dataToSave);
+                        rememberPersistedSchedule(docId, dataToSave);
                         if (silent) {
                             saveButton.textContent = 'Salvo automaticamente';
                             setTimeout(() => {
@@ -1971,11 +2019,31 @@
                 if (!canPersistSchedule()) return;
                 clearTimeout(autoSaveDebounceTimer);
                 autoSaveDebounceTimer = null;
+
+                // Captura o DOM agora (ainda é o período anterior), antes de regenerar o calendário
+                const fromDom = collectScheduleFromDOM(calendarBody);
+                const prevDocId = buildScheduleDocId(
+                    previousPeriod.year,
+                    previousPeriod.month,
+                    previousPeriod.scheduleType
+                );
+
+                if (isSchedulePayloadEmpty(fromDom.schedule)) {
+                    const cached = lastPersistedByDocId.get(prevDocId);
+                    if (cached && !isSchedulePayloadEmpty(cached.schedule)) {
+                        // Calendário vazio (load incompleto / já limpo) — não apagar a escala anterior
+                        return;
+                    }
+                }
+
                 await saveScheduleData({
                     silent: true,
                     year: previousPeriod.year,
                     month: previousPeriod.month,
-                    scheduleType: previousPeriod.scheduleType
+                    scheduleType: previousPeriod.scheduleType,
+                    schedule: fromDom.schedule,
+                    teams: fromDom.teams,
+                    title: editableTitlePart.textContent
                 });
             };
 
@@ -2022,9 +2090,13 @@
             const loadScheduleData = async (year, month, scheduleType) => {
                 if (!db || !auth.currentUser || !userId) {
                     console.error("Load failed: DB not initialized or user not authenticated.");
+                    isLoadingSchedule = false;
                     return;
                 }
+                const token = ++loadToken;
                 isLoadingSchedule = true;
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = null;
                 try {
                     let docSnap = null;
                     const basePaths = [
@@ -2041,6 +2113,9 @@
                             } catch (_) { /* permission denied on legacy path — skip */ }
                         }
                     }
+                    // Se o usuário já trocou de período, ignora resultado atrasado
+                    if (token !== loadToken) return;
+
                     const data = (docSnap && docSnap.exists()) ? docSnap.data() : null;
                     
                     let scheduleData;
@@ -2068,6 +2143,8 @@
                         scheduleData = data?.schedule || {};
                     }
 
+                    if (token !== loadToken) return;
+
                     document.querySelectorAll('.agent-name-input').forEach(select => {
                         const date = select.dataset.date;
                         const index = parseInt(select.dataset.index);
@@ -2093,13 +2170,20 @@
                         }
                     });
 
+                    rememberPersistedSchedule(buildScheduleDocId(year, month, scheduleType), {
+                        schedule: scheduleData,
+                        teams: teamsData,
+                        title: data?.title || editableTitlePart.textContent,
+                        viagemDates: scheduleType === 'extraordinaria_viagem' ? viagemDates : undefined
+                    });
+
                     updateSummary();
 
                 } catch(error) {
                     console.error("Error loading schedule data:", error);
                     updateSummary();
                 } finally {
-                    isLoadingSchedule = false;
+                    if (token === loadToken) isLoadingSchedule = false;
                 }
             };
             
@@ -2321,11 +2405,16 @@
             };
 
             const generateCalendar = (year, month, scheduleType) => {
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = null;
+                isLoadingSchedule = true;
+
                 if (scheduleType === 'extraordinaria_viagem') {
                     generateViagemCalendar(year, month);
                     if (auth && auth.currentUser) {
                         loadScheduleData(year, month, scheduleType);
                     } else {
+                        isLoadingSchedule = false;
                         updateSummary();
                     }
                     if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
@@ -2459,6 +2548,7 @@
                 if (auth && auth.currentUser) {
                     loadScheduleData(year, month, scheduleType);
                 } else {
+                    isLoadingSchedule = false;
                     updateSummary();
                 }
 
