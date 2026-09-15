@@ -919,6 +919,8 @@
             LEGACY_SAVED_TITLE_VIAGEM
         ]);
         const NELSON_PREFILL_PERIOD = { year: 2025, month: 9 }; /* Outubro (índice 0–11) */
+        /** Escala Sr. Nelson SET/OUT 2026 (mês índice 8 = setembro). */
+        const NELSON_SEP_2026_PERIOD = { year: 2026, month: 8 };
 
         const CAL_ROW_WITH_MONTH = 8;
         const CAL_ROW_DAYS_ONLY = 7;
@@ -1593,6 +1595,74 @@
                 "2025-11-09": ["LISBOA", "MALCHER"], "2025-11-10": ["MALCHER", "EDUARDO"], "2025-11-11": ["EDUARDO", "THEODORO"],
                 "2025-11-12": ["LISBOA", "PENNA"], "2025-11-13": ["PENNA", "THEODORO"], "2025-11-14": ["LISBOA", "MALCHER"],
                 "2025-11-15": ["PENNA", "EDUARDO"]
+            };
+
+            // Escala Ordinária Sr. Nelson — SET/OUT 2026 (conforme folha enviada)
+            const nelsonSep2026Seed = {
+                schedule: {
+                    "2026-09-16": ["EDUARDO", "PENNA"],
+                    "2026-09-17": ["PENNA", "THEODORO"],
+                    "2026-09-18": ["LISBOA", "MALCHER"],
+                    "2026-09-19": ["LISBOA", "MALCHER"],
+                    "2026-09-20": ["EDUARDO", "PENNA"],
+                    "2026-09-21": ["EDUARDO", "THEODORO"],
+                    "2026-09-22": ["LISBOA", "MALCHER"],
+                    "2026-09-23": ["MALCHER", "THEODORO"],
+                    "2026-09-24": ["EDUARDO", "PENNA"],
+                    "2026-09-25": ["LISBOA", "EDUARDO"],
+                    "2026-09-26": ["MALCHER", "THEODORO"],
+                    "2026-09-27": ["LISBOA", "THEODORO"],
+                    "2026-09-28": ["EDUARDO", "PENNA"],
+                    "2026-09-29": ["PENNA", "THEODORO"],
+                    "2026-09-30": ["THEODORO", "MALCHER"],
+                    "2026-10-01": ["MALCHER", "THEODORO"],
+                    "2026-10-02": ["EDUARDO", "PENNA"],
+                    "2026-10-03": ["LISBOA", "PENNA"],
+                    "2026-10-04": ["LISBOA", "MALCHER"],
+                    "2026-10-05": ["MALCHER", "THEODORO"],
+                    "2026-10-06": ["EDUARDO", "PENNA"],
+                    "2026-10-07": ["EDUARDO", "THEODORO"],
+                    "2026-10-08": ["LISBOA", "MALCHER"],
+                    "2026-10-09": ["EDUARDO", "THEODORO"],
+                    "2026-10-10": ["EDUARDO", "THEODORO"],
+                    "2026-10-11": ["LISBOA", "PENNA"],
+                    "2026-10-12": ["LISBOA", "MALCHER"],
+                    "2026-10-13": ["MALCHER", "THEODORO"],
+                    "2026-10-14": ["EDUARDO", "PENNA"],
+                    "2026-10-15": ["LISBOA", "PENNA"]
+                },
+                teams: {
+                    "2026-09-16": "CHARLIE",
+                    "2026-09-17": "DELTA",
+                    "2026-09-18": "ALPHA",
+                    "2026-09-19": "BRAVO",
+                    "2026-09-20": "CHARLIE",
+                    "2026-09-21": "DELTA",
+                    "2026-09-22": "ALPHA",
+                    "2026-09-23": "BRAVO",
+                    "2026-09-24": "CHARLIE",
+                    "2026-09-25": "DELTA",
+                    "2026-09-26": "ALPHA",
+                    "2026-09-27": "BRAVO",
+                    "2026-09-28": "CHARLIE",
+                    "2026-09-29": "DELTA",
+                    "2026-09-30": "ALPHA",
+                    "2026-10-01": "BRAVO",
+                    "2026-10-02": "CHARLIE",
+                    "2026-10-03": "DELTA",
+                    "2026-10-04": "ALPHA",
+                    "2026-10-05": "BRAVO",
+                    "2026-10-06": "CHARLIE",
+                    "2026-10-07": "DELTA",
+                    "2026-10-08": "ALPHA",
+                    "2026-10-09": "BRAVO",
+                    "2026-10-10": "CHARLIE",
+                    "2026-10-11": "DELTA",
+                    "2026-10-12": "ALPHA",
+                    "2026-10-13": "BRAVO",
+                    "2026-10-14": "CHARLIE",
+                    "2026-10-15": "DELTA"
+                }
             };
 
             function buildViagemPrintWeeks(datesList) {
@@ -2394,7 +2464,8 @@
                     
                     let scheduleData;
                     // NOVO: Dados das equipes
-                    const teamsData = data?.teams || {};
+                    let teamsData = data?.teams || {};
+                    let shouldPersistNelsonSeed = false;
 
                     // Datas personalizadas — somente escala Viagem
                     if (scheduleType === 'extraordinaria_viagem') {
@@ -2410,7 +2481,18 @@
                         viagemDates = savedViagemDates;
                     }
 
-                    if (!data && scheduleType === 'ordinaria_nelson' && year === NELSON_PREFILL_PERIOD.year && month === NELSON_PREFILL_PERIOD.month) {
+                    const isNelsonSep2026 =
+                        scheduleType === 'ordinaria_nelson' &&
+                        year === NELSON_SEP_2026_PERIOD.year &&
+                        month === NELSON_SEP_2026_PERIOD.month;
+                    const existingScheduleEmpty = !data || isSchedulePayloadEmpty(data.schedule);
+
+                    if (isNelsonSep2026 && existingScheduleEmpty) {
+                        scheduleData = nelsonSep2026Seed.schedule;
+                        teamsData = { ...nelsonSep2026Seed.teams };
+                        shouldPersistNelsonSeed = true;
+                        applyLoadedDocumentTitle({ title: 'ESCALA ORDINÁRIA' });
+                    } else if (!data && scheduleType === 'ordinaria_nelson' && year === NELSON_PREFILL_PERIOD.year && month === NELSON_PREFILL_PERIOD.month) {
                         scheduleData = prefilledNelsonData;
                     } else {
                         applyLoadedDocumentTitle(data);
@@ -2452,6 +2534,24 @@
                     });
 
                     updateSummary();
+
+                    // Persiste a folha Sr. Nelson SET/OUT 2026 se o doc estava vazio e o usuário está logado
+                    if (shouldPersistNelsonSeed && canPersistSchedule()) {
+                        const seedDocId = buildScheduleDocId(year, month, scheduleType);
+                        const seedPayload = {
+                            title: 'ESCALA ORDINÁRIA',
+                            schedule: scheduleData,
+                            teams: teamsData,
+                            createdAt: new Date()
+                        };
+                        try {
+                            await setDoc(doc(db, `schedules/${appId}/periods`, seedDocId), seedPayload);
+                            rememberPersistedSchedule(seedDocId, seedPayload);
+                            debugLog('Seed Sr. Nelson SET/OUT 2026 persistido no Firestore.');
+                        } catch (persistErr) {
+                            console.error('Falha ao persistir seed Sr. Nelson SET/OUT 2026:', persistErr);
+                        }
+                    }
 
                 } catch(error) {
                     console.error("Error loading schedule data:", error);
