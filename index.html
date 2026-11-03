@@ -643,7 +643,7 @@
     <div id="backup-restore-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-lg mx-4 max-h-[min(90dvh,100vh)] overflow-y-auto overscroll-contain">
             <h2 class="text-xl font-bold text-center text-slate-800 mb-2">Recuperar backup</h2>
-            <p class="text-sm text-slate-600 text-center mb-4">Escolha um backup completo das escalas. A restauração sobrescreve os dados atuais no Firestore.</p>
+            <p class="text-sm text-slate-600 text-center mb-4">Escolha um backup completo. A restauração é segura: só recupera escalas que estão ausentes ou vazias, sem sobrescrever as que já têm agentes.</p>
             <div id="backup-restore-list" class="space-y-2 mb-4 max-h-72 overflow-y-auto"></div>
             <p id="backup-restore-error" class="text-red-500 text-sm text-center mb-3 hidden"></p>
             <button type="button" id="backup-restore-close" class="w-full py-2 px-4 rounded-md font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50">Fechar</button>
@@ -1018,8 +1018,19 @@
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 `);
+                // Histórico automático: cópia de cada escala ANTES de ser sobrescrita/excluída
+                await tursoClient.execute(`
+                    CREATE TABLE IF NOT EXISTS schedule_doc_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        doc_id TEXT NOT NULL,
+                        reason TEXT,
+                        payload TEXT NOT NULL,
+                        created_by TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
                 debugLog('Turso: conectado e tabelas verificadas.');
-                
+
                 // Verifica se há arquivo
                 checkLatestFile();
                 refreshBackupStatus();
@@ -1238,8 +1249,16 @@
             const periods = Array.isArray(parsed?.periods) ? parsed.periods : [];
             if (periods.length === 0) throw new Error('Backup sem escalas.');
 
+            // Restauração SEGURA: só grava escalas que estão ausentes ou vazias no Firestore.
+            // Nunca sobrescreve uma escala que já tem agentes (evita voltar dados novos para versões antigas).
+            let restored = 0;
+            const restoredIds = [];
             for (const period of periods) {
                 if (!period?.id) continue;
+                const scheduleRef = doc(db, `schedules/${appId}/periods`, period.id);
+                const currentSnap = await getDoc(scheduleRef);
+                if (currentSnap.exists() && countSchedulePayloadAgents(currentSnap.data()?.schedule) > 0) continue;
+                if (countSchedulePayloadAgents(period.schedule) === 0) continue;
                 const dataToSave = {
                     title: period.title || 'ESCALA',
                     schedule: period.schedule || {},
@@ -1249,10 +1268,44 @@
                 if (Array.isArray(period.viagemDates)) {
                     dataToSave.viagemDates = period.viagemDates;
                 }
-                const scheduleRef = doc(db, `schedules/${appId}/periods`, period.id);
                 await setDoc(scheduleRef, dataToSave);
+                restored += 1;
+                restoredIds.push(period.id);
             }
-            return periods.length;
+            return { restored, restoredIds, total: periods.length };
+        };
+
+        /** Conta agentes preenchidos num payload `schedule` (datas → [nome, nome]). */
+        const countSchedulePayloadAgents = (schedule) => {
+            if (!schedule || typeof schedule !== 'object') return 0;
+            let total = 0;
+            Object.values(schedule).forEach((agents) => {
+                if (Array.isArray(agents)) {
+                    agents.forEach((name) => { if (name) total += 1; });
+                } else if (agents && typeof agents === 'object') {
+                    Object.values(agents).forEach((name) => { if (name) total += 1; });
+                }
+            });
+            return total;
+        };
+
+        /** Guarda no Turso a versão atual de uma escala antes de alterá-la/excluí-la. Nunca lança erro. */
+        const snapshotScheduleDoc = async (docId, data, reason) => {
+            try {
+                if (!tursoClient || !data) return;
+                if (countSchedulePayloadAgents(data.schedule) === 0) return; // nada a preservar
+                await tursoClient.execute({
+                    sql: 'INSERT INTO schedule_doc_history (doc_id, reason, payload, created_by) VALUES (?, ?, ?, ?)',
+                    args: [
+                        docId,
+                        reason,
+                        JSON.stringify({ id: docId, ...serializeBackupValue(data) }),
+                        auth?.currentUser?.email || auth?.currentUser?.uid || ''
+                    ]
+                });
+            } catch (error) {
+                console.warn('Histórico: falha ao guardar versão anterior de', docId, error);
+            }
         };
 
 
@@ -1359,6 +1412,12 @@
             let loadToken = 0;
             // Último schedule conhecido por docId — evita autosave apagar dados já carregados/salvos
             const lastPersistedByDocId = new Map();
+            // Estado da LEITURA de cada escala: 'ok' só se o Firestore respondeu sem erro.
+            // Sem 'ok', nenhuma gravação é permitida (evita sobrescrever dados reais com calendário em branco).
+            const periodLoadState = new Map();
+            // Escalas cuja versão anterior já foi guardada no histórico nesta sessão
+            const snapshottedDocIds = new Set();
+            const SHRINK_GUARD_MIN_LOSS = 6;
 
             const capturePeriodSnapshot = () => ({
                 year: parseInt(yearSelect.value, 10),
@@ -1466,16 +1525,18 @@
                 if (!btn) return;
                 const backupId = Number(btn.dataset.backupId);
                 if (!backupId) return;
-                if (!confirm('Recuperar este backup? Isso sobrescreve todas as escalas atuais no Firestore com o conteúdo do backup.')) {
+                if (!confirm('Recuperar este backup? Serão restauradas apenas as escalas que estão ausentes ou vazias. Escalas já preenchidas não serão alteradas.')) {
                     return;
                 }
                 btn.disabled = true;
                 btn.textContent = 'Restaurando…';
                 backupRestoreError.classList.add('hidden');
                 try {
-                    const count = await restoreFullScheduleBackup(backupId);
+                    const { restored, restoredIds, total } = await restoreFullScheduleBackup(backupId);
                     backupRestoreModal.classList.add('hidden');
-                    alert(`Backup restaurado: ${count} escalas gravadas no Firestore.`);
+                    alert(restored > 0
+                        ? `Backup restaurado: ${restored} de ${total} escalas recuperadas (${restoredIds.join(', ')}).\nAs demais já estavam preenchidas e foram mantidas.`
+                        : `Nada a restaurar: as ${total} escalas do backup já estão preenchidas ou vazias no backup.`);
                     handleDateChange();
                 } catch (error) {
                     console.error('Erro ao restaurar backup:', error);
@@ -2029,6 +2090,12 @@
                 const credential = EmailAuthProvider.credential(user.email, password);
                 await reauthenticateWithCredential(user, credential);
                 const scheduleRef = doc(db, `schedules/${appId}/periods`, scaleId);
+                try {
+                    const beforeDelete = await getDoc(scheduleRef);
+                    if (beforeDelete.exists()) await snapshotScheduleDoc(scaleId, beforeDelete.data(), 'before-delete');
+                } catch (err) {
+                    console.warn('Histórico: não foi possível ler a escala antes de excluir.', err);
+                }
                 await deleteDoc(scheduleRef);
             };
 
@@ -2156,6 +2223,8 @@
                     
                     enableEditing();
                     resetSessionTimer();
+                    // O calendário pode ter sido carregado como anônimo: recarrega com a sessão completa
+                    handleDateChange();
                     loginModal.classList.add('hidden');
                     loginError.classList.add('hidden');
                     e.target.reset();
@@ -2279,6 +2348,15 @@
                     if (deletedDocIds.has(docId) && !opts.forceSave) return;
                     if (opts.forceSave) deletedDocIds.delete(docId);
 
+                    // TRAVA 1: só grava se a escala foi lida com sucesso do banco
+                    if (periodLoadState.get(docId) !== 'ok') {
+                        console.warn('Gravação bloqueada: escala não foi carregada com sucesso.', docId);
+                        if (!silent) {
+                            alert('Esta escala não foi carregada corretamente do banco, por isso não foi salva (para não apagar dados). Recarregue a página e tente de novo.');
+                        }
+                        return;
+                    }
+
                     if (!silent) {
                         saveButton.disabled = true;
                         saveButton.textContent = 'Salvando...';
@@ -2288,8 +2366,14 @@
                         ? { schedule: opts.schedule, teams: opts.teams || {} }
                         : collectScheduleFromDOM(calendarBody);
 
-                    // Autosave nunca grava escala vazia (só limpeza explícita com allowEmptyOverwrite)
-                    if (silent && !opts.allowEmptyOverwrite && isSchedulePayloadEmpty(scheduleData)) {
+                    // Escala vazia NUNCA é gravada (autosave ou botão Salvar); só limpeza explícita com allowEmptyOverwrite
+                    if (!opts.allowEmptyOverwrite && isSchedulePayloadEmpty(scheduleData)) {
+                        if (!silent) {
+                            alert('Escala em branco não foi salva, para proteger os dados existentes.');
+                            saveButton.disabled = false;
+                            saveButton.textContent = 'Salvar Escala';
+                            return;
+                        }
                         const cached = lastPersistedByDocId.get(docId);
                         if (cached && !isSchedulePayloadEmpty(cached.schedule)) {
                             console.warn('Autosave bloqueado: DOM vazio, mas havia escala salva/carregada.', docId);
@@ -2319,7 +2403,55 @@
                     }
 
                     try {
+                        // TRAVA 2: gravação que apagaria a maior parte da escala exige confirmação explícita
+                        const previous = lastPersistedByDocId.get(docId);
+                        const previousCount = countAssignedAgents(previous?.schedule);
+                        const newCount = countAssignedAgents(scheduleData);
+                        const looksDestructive = !opts.allowEmptyOverwrite
+                            && previousCount - newCount >= SHRINK_GUARD_MIN_LOSS
+                            && newCount < previousCount / 2;
+                        if (looksDestructive) {
+                            if (silent) {
+                                console.warn(`Autosave bloqueado: removeria ${previousCount - newCount} de ${previousCount} agentes.`, docId);
+                                saveButton.textContent = 'Salvar Escala';
+                                return;
+                            }
+                            if (!confirm(`Atenção: esta gravação apaga ${previousCount - newCount} de ${previousCount} agentes já salvos nesta escala. Continuar mesmo assim?`)) {
+                                saveButton.disabled = false;
+                                saveButton.textContent = 'Salvar Escala';
+                                return;
+                            }
+                        }
+
+                        // HISTÓRICO: guarda a versão anterior no Turso (1x por escala por sessão, ou sempre que for destrutivo)
+                        if (previous && (looksDestructive || !snapshottedDocIds.has(docId))) {
+                            await snapshotScheduleDoc(docId, previous, looksDestructive ? 'before-shrink' : 'before-edit');
+                            snapshottedDocIds.add(docId);
+                        }
+
                         const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+
+                        // TRAVA 4: reconfere o banco agora; se o que está lá tem muito mais agentes do que o novo
+                        // payload (ex.: outra aba/aparelho editou), não sobrescreve sem confirmação.
+                        const liveSnap = await getDoc(scheduleRef);
+                        if (liveSnap.exists()) {
+                            const liveCount = countAssignedAgents(liveSnap.data()?.schedule);
+                            if (!opts.allowEmptyOverwrite && liveCount > newCount && liveCount - newCount >= SHRINK_GUARD_MIN_LOSS) {
+                                if (silent) {
+                                    console.warn('Autosave bloqueado: o banco tem dados mais completos que esta tela.', docId);
+                                    rememberPersistedSchedule(docId, liveSnap.data());
+                                    return;
+                                }
+                                if (!confirm(`O banco tem ${liveCount} agentes nesta escala e a tela tem ${newCount}. Sobrescrever mesmo assim?`)) {
+                                    return;
+                                }
+                            }
+                            if (!snapshottedDocIds.has(docId) || liveCount > newCount) {
+                                await snapshotScheduleDoc(docId, liveSnap.data(), liveCount > newCount ? 'before-shrink' : 'before-edit');
+                                snapshottedDocIds.add(docId);
+                            }
+                        }
+
                         await setDoc(scheduleRef, dataToSave);
                         rememberPersistedSchedule(docId, dataToSave);
                         if (silent) {
@@ -2441,6 +2573,8 @@
                 isLoadingSchedule = true;
                 clearTimeout(autoSaveDebounceTimer);
                 autoSaveDebounceTimer = null;
+                const loadedDocId = buildScheduleDocId(year, month, scheduleType);
+                let primaryReadFailed = false;
                 try {
                     let docSnap = null;
                     const basePaths = [
@@ -2454,11 +2588,25 @@
                                 const scheduleRef = doc(db, basePath, docId);
                                 docSnap = await getDoc(scheduleRef);
                                 if (docSnap.exists()) break outer;
-                            } catch (_) { /* permission denied on legacy path — skip */ }
+                            } catch (readErr) {
+                                // Caminho legado pode negar permissão (ok). Falha no caminho principal NÃO é ok.
+                                if (basePath === basePaths[0]) {
+                                    primaryReadFailed = true;
+                                    console.error('Falha ao ler escala no Firestore:', loadedDocId, readErr);
+                                }
+                            }
                         }
                     }
                     // Se o usuário já trocou de período, ignora resultado atrasado
                     if (token !== loadToken) return;
+
+                    // Leitura com erro e nada encontrado: mantém bloqueado para gravação e avisa o usuário
+                    if (primaryReadFailed && !(docSnap && docSnap.exists())) {
+                        periodLoadState.set(loadedDocId, 'failed');
+                        updateSummary();
+                        alert('Não foi possível carregar esta escala do banco (conexão/permissão). A edição foi bloqueada para não apagar dados. Recarregue a página ou faça login novamente.');
+                        return;
+                    }
 
                     const data = (docSnap && docSnap.exists()) ? docSnap.data() : null;
                     
@@ -2526,6 +2674,7 @@
                         }
                     });
 
+                    periodLoadState.set(loadedDocId, 'ok');
                     rememberPersistedSchedule(buildScheduleDocId(year, month, scheduleType), {
                         schedule: scheduleData,
                         teams: teamsData,
@@ -2555,6 +2704,7 @@
 
                 } catch(error) {
                     console.error("Error loading schedule data:", error);
+                    if (token === loadToken) periodLoadState.set(loadedDocId, 'failed');
                     updateSummary();
                 } finally {
                     if (token === loadToken) isLoadingSchedule = false;
@@ -2784,6 +2934,7 @@
                 isLoadingSchedule = true;
 
                 if (scheduleType === 'extraordinaria_viagem') {
+                    periodLoadState.delete(buildScheduleDocId(year, month, scheduleType));
                     generateViagemCalendar(year, month);
                     if (auth && auth.currentUser) {
                         loadScheduleData(year, month, scheduleType);
@@ -2799,6 +2950,8 @@
                     return;
                 }
 
+                // DOM novo = ainda não carregado: bloqueia gravações até a leitura terminar com sucesso
+                periodLoadState.delete(buildScheduleDocId(year, month, scheduleType));
                 calendarBody.innerHTML = '';
                 
                 // Definir intervalo padrão (16 a 15)
