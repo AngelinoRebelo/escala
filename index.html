@@ -2366,8 +2366,14 @@
                         ? { schedule: opts.schedule, teams: opts.teams || {} }
                         : collectScheduleFromDOM(calendarBody);
 
-                    // Autosave nunca grava escala vazia (só limpeza explícita com allowEmptyOverwrite)
-                    if (silent && !opts.allowEmptyOverwrite && isSchedulePayloadEmpty(scheduleData)) {
+                    // Escala vazia NUNCA é gravada (autosave ou botão Salvar); só limpeza explícita com allowEmptyOverwrite
+                    if (!opts.allowEmptyOverwrite && isSchedulePayloadEmpty(scheduleData)) {
+                        if (!silent) {
+                            alert('Escala em branco não foi salva, para proteger os dados existentes.');
+                            saveButton.disabled = false;
+                            saveButton.textContent = 'Salvar Escala';
+                            return;
+                        }
                         const cached = lastPersistedByDocId.get(docId);
                         if (cached && !isSchedulePayloadEmpty(cached.schedule)) {
                             console.warn('Autosave bloqueado: DOM vazio, mas havia escala salva/carregada.', docId);
@@ -2424,6 +2430,28 @@
                         }
 
                         const scheduleRef = doc(db, `schedules/${appId}/periods`, docId);
+
+                        // TRAVA 4: reconfere o banco agora; se o que está lá tem muito mais agentes do que o novo
+                        // payload (ex.: outra aba/aparelho editou), não sobrescreve sem confirmação.
+                        const liveSnap = await getDoc(scheduleRef);
+                        if (liveSnap.exists()) {
+                            const liveCount = countAssignedAgents(liveSnap.data()?.schedule);
+                            if (!opts.allowEmptyOverwrite && liveCount > newCount && liveCount - newCount >= SHRINK_GUARD_MIN_LOSS) {
+                                if (silent) {
+                                    console.warn('Autosave bloqueado: o banco tem dados mais completos que esta tela.', docId);
+                                    rememberPersistedSchedule(docId, liveSnap.data());
+                                    return;
+                                }
+                                if (!confirm(`O banco tem ${liveCount} agentes nesta escala e a tela tem ${newCount}. Sobrescrever mesmo assim?`)) {
+                                    return;
+                                }
+                            }
+                            if (!snapshottedDocIds.has(docId) || liveCount > newCount) {
+                                await snapshotScheduleDoc(docId, liveSnap.data(), liveCount > newCount ? 'before-shrink' : 'before-edit');
+                                snapshottedDocIds.add(docId);
+                            }
+                        }
+
                         await setDoc(scheduleRef, dataToSave);
                         rememberPersistedSchedule(docId, dataToSave);
                         if (silent) {
